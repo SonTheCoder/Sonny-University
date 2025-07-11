@@ -1,0 +1,3632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>University Student Portal</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts - Poppins and Montserrat -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- jsPDF-AutoTable for table generation in PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        /* Custom CSS to override/enhance Tailwind and for specific elements */
+        body {
+            font-family: 'Poppins', sans-serif;
+            /* Updated background for glassy effect visibility */
+            background: linear-gradient(135deg, #e0f2f7 0%, #cce7ed 100%);
+            color: #333;
+        }
+
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e0e0e0;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Specific styles for grade colors */
+        .grade-A { color: #28a745; /* Green */ }
+        .grade-B { color: #17a2b8; /* Cyan */ }
+        .grade-C { color: #ffc107; /* Yellow */ }
+        .grade-D { color: #dc3545; /* Red */ }
+
+        /* Highlight for subject stats table */
+        .highlight {
+            background-color: #e6f7ff; /* Light blue for top subjects */
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Glassmorphism effect for content cards and modals */
+        .glassy-card {
+            background-color: rgba(255, 255, 255, 0.5); /* Semi-transparent white */
+            backdrop-filter: blur(10px); /* Frosted glass effect */
+            border: 1px solid rgba(255, 255, 255, 0.3); /* Subtle light border */
+            border-radius: 0.75rem; /* Match existing rounded-xl */
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37); /* Stronger, more modern shadow */
+        }
+
+        .modal-content {
+            background-color: transparent; /* Changed to transparent to let glassy-card define it */
+            margin: auto;
+            padding: 2rem;
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: none; /* Remove previous box-shadow, glassy-card will add one */
+            width: 90%;
+            max-width: 600px;
+            position: relative;
+        }
+        /* Adjusted max-width for admin grade edit modal to accommodate more content */
+        #editStudentGradesAdminModal .modal-content,
+        #editStudentGradesTeacherModal .modal-content {
+            max-width: 900px; /* Wider for grade editing */
+        }
+
+
+        .close-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+            z-index: 10; /* Ensure close button is above glassy content */
+            transition: color 0.2s ease-in-out;
+        }
+        .close-button:hover {
+            color: #333;
+        }
+
+        /* Toast notification styles */
+        .toast {
+            visibility: hidden; /* Hidden by default. */
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            position: fixed;
+            z-index: 1001;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.5s, visibility 0.5s;
+        }
+
+        .toast.show {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .toast.error {
+            background-color: #dc3545; /* Red for errors */
+        }
+
+        /* Sidebar active link */
+        .sidebar-link.active, .admin-sidebar-link.active, .teacher-sidebar-link.active {
+            background-color: #800020; /* Maroon */
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transform: translateX(5px);
+        }
+        .sidebar-link, .admin-sidebar-link, .teacher-sidebar-link {
+            transition: all 0.2s ease-in-out;
+        }
+
+
+        /* Table specific styles for better readability */
+        th, td {
+            padding: 0.75rem 1rem; /* px-4 py-3 */
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0; /* border-b border-gray-200 */
+        }
+
+        th {
+            background-color: #f8f8f8;
+            font-weight: 600;
+            color: #4a5568; /* text-gray-700 */
+            text-transform: uppercase;
+            font-size: 0.75rem; /* text-xs */
+        }
+        
+        tbody tr:hover {
+            background-color: #f0f8ff; /* Light blue on hover for table rows */
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        /* Input styles within tables for editing */
+        .edit-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #cbd5e0; /* border-gray-300 */
+            border-radius: 0.375rem; /* rounded-md */
+            font-size: 0.875rem; /* text-sm */
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+            transition: all 0.2s ease-in-out;
+        }
+        .edit-input:focus {
+            outline: none;
+            border-color: #800020; /* Maroon */
+            box-shadow: 0 0 0 2px rgba(128, 0, 32, 0.2);
+        }
+
+        /* Tab button styles */
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            background-color: rgba(255, 255, 255, 0.7);
+            color: #333;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(5px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .tab-button.active {
+            background-color: #800020; /* Maroon */
+            color: #fff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transform: translateY(-2px);
+        }
+        .tab-button:not(.active):hover {
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+    <!-- Login Page -->
+    <div id="loginPage" class="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-red-800 to-red-900 text-white p-4">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md text-gray-800 glassy-card">
+            <h1 class="text-4xl font-extrabold text-center mb-6 text-red-800">
+                <i class="fas fa-graduation-cap mr-3"></i> University Portal
+            </h1>
+            <p class="text-center text-gray-600 mb-8">Sign in to access your student or admin dashboard.</p>
+            
+            <div class="mb-5">
+                <label for="username" class="block text-gray-700 text-sm font-semibold mb-2">Username / Student ID</label>
+                <input type="text" id="username" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 transition duration-200" placeholder="Enter your username or ID">
+            </div>
+            <div class="mb-6">
+                <label for="password" class="block text-gray-700 text-sm font-semibold mb-2">Password</label>
+                <input type="password" id="password" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 transition duration-200" placeholder="Enter your password">
+            </div>
+            <div id="error" class="text-red-600 text-sm mb-4 hidden text-center"></div>
+            <button onclick="login()" class="w-full bg-red-800 text-white py-3 rounded-lg font-bold text-lg hover:bg-red-900 transition duration-300 transform hover:scale-105 shadow-lg">
+                Login
+            </button>
+            <p class="text-center text-gray-500 text-sm mt-6">
+                Hint: Try "LIGUTOM, SONNY" with ID "13644212013701" for student login, or "(ADMIN)" with "(ADMIN)" for admin login, or "Teacher@university.edu" with "1421" for teacher login.
+            </p>
+        </div>
+    </div>
+
+    <!-- Student Dashboard -->
+    <div id="dashboard" class="hidden flex-1 flex flex-col lg:flex-row">
+        <!-- Sidebar -->
+        <aside class="w-full lg:w-64 bg-red-800 text-white p-6 flex flex-col shadow-lg">
+            <div class="text-center mb-8">
+                <div id="userAvatar" class="w-24 h-24 mx-auto rounded-full bg-red-600 flex items-center justify-center text-3xl font-bold mb-3 shadow-md"></div>
+                <h2 class="text-2xl font-bold" id="headerStudentName"></h2>
+                <p class="text-red-200 text-sm" id="studentId"></p>
+            </div>
+            <nav class="flex-1">
+                <ul>
+                    <li class="mb-3">
+                        <a href="#" onclick="switchStudentView('studentOverview')" class="sidebar-link active flex items-center p-3 rounded-lg hover:bg-red-700 transition duration-200 cursor-pointer">
+                            <i class="fas fa-tachometer-alt mr-3"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="mb-3">
+                        <a href="#" onclick="switchStudentView('studentGrades')" class="sidebar-link flex items-center p-3 rounded-lg hover:bg-red-700 transition duration-200 cursor-pointer">
+                            <i class="fas fa-book mr-3"></i> Grades
+                        </a>
+                    </li>
+                    <li class="mb-3">
+                        <a href="#" onclick="showStudentProfileModal()" class="sidebar-link flex items-center p-3 rounded-lg hover:bg-red-700 transition duration-200 cursor-pointer">
+                            <i class="fas fa-user-circle mr-3"></i> Profile
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            <button onclick="logout()" class="w-full bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700 transition duration-300 transform hover:scale-105 shadow-md mt-6">
+                <i class="fas fa-sign-out-alt mr-2"></i> Logout
+            </button>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6 overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">Welcome, <span id="headerStudentNameShort"></span>!</h1>
+            </div>
+
+            <!-- Student Overview Section -->
+            <section id="studentOverview" class="student-view">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <!-- Welcome Card -->
+                    <div class="glassy-card p-6 rounded-xl col-span-1 md:col-span-2">
+                        <h3 class="text-xl font-semibold text-red-800 mb-4">Your Academic Snapshot</h3>
+                        <p class="text-gray-700 text-lg">Hello <span class="font-bold" id="welcomeStudentName"></span>, welcome to your personalized student portal. Here you can track your academic progress, view your grades, and see your overall performance at a glance.</p>
+                        <div class="mt-6 flex flex-wrap gap-4">
+                            <button onclick="switchStudentView('studentGrades')" class="bg-red-700 text-white px-5 py-2 rounded-lg hover:bg-red-800 transition duration-200 shadow-md cursor-pointer">
+                                View Full Grades
+                            </button>
+                            <button onclick="showStudentProfileModal()" class="bg-gray-200 text-gray-800 px-5 py-2 rounded-lg hover:bg-gray-300 transition duration-200 shadow-md cursor-pointer">
+                                Update Profile
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 gap-4">
+                        <div class="glassy-card p-6 rounded-xl flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">Overall Average</p>
+                                <p class="text-3xl font-bold text-red-800" id="statAverage"></p>
+                            </div>
+                            <i class="fas fa-chart-line text-4xl text-red-300"></i>
+                        </div>
+                        <div class="glassy-card p-6 rounded-xl flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">Class Rank</p>
+                                <p class="text-3xl font-bold text-red-800" id="statRank"></p>
+                            </div>
+                            <i class="fas fa-trophy text-4xl text-red-300"></i>
+                        </div>
+                        <div class="glassy-card p-6 rounded-xl flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">Academic Honors</p>
+                                <p class="text-xl font-bold text-red-800" id="statHonors"></p>
+                            </div>
+                            <i class="fas fa-award text-4xl text-red-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Student Grades Section -->
+            <section id="studentGrades" class="student-view hidden">
+                <div class="glassy-card p-6 rounded-xl mb-8">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Your Detailed Grades</h3>
+
+                    <!-- Year Tabs -->
+                    <div id="studentYearTabs" class="flex flex-wrap gap-3 mb-6">
+                        <!-- Year buttons will be populated here -->
+                    </div>
+
+                    <!-- Semester Tabs and Grade Table -->
+                    <div id="studentGradesContent" class="overflow-x-auto">
+                        <!-- Semester tabs and grade table will be populated here -->
+                    </div>
+
+                    <div class="mt-6 flex justify-end gap-4">
+                        <button onclick="printGrades()" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition duration-200 shadow-md cursor-pointer">
+                            <i class="fas fa-print mr-2"></i> Print Grades
+                        </button>
+                        <button onclick="downloadGrades()" class="bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 transition duration-200 shadow-md cursor-pointer">
+                            <i class="fas fa-download mr-2"></i> Download PDF
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="adminDashboard" class="hidden flex-1 flex flex-col lg:flex-row">
+        <!-- Sidebar -->
+        <aside class="w-full lg:w-64 bg-red-800 text-white p-6 flex flex-col shadow-lg">
+            <div class="text-center mb-8">
+                <div class="w-24 h-24 mx-auto rounded-full bg-red-600 flex items-center justify-center text-3xl font-bold mb-3 shadow-md">AD</div>
+                <h2 class="text-2xl font-bold">Administrator</h2>
+                <p class="text-red-200 text-sm">Full Access</p>
+            </div>
+            <nav class="flex-1">
+                <ul>
+                    <li class="mb-3">
+                        <a href="#" onclick="switchAdminView('adminStudents')" class="admin-sidebar-link active flex items-center p-3 rounded-lg hover:bg-red-700 transition duration-200 cursor-pointer">
+                            <i class="fas fa-users mr-3"></i> Student List
+                        </a>
+                    </li>
+                    <li class="mb-3">
+                        <a href="#" onclick="switchAdminView('adminSubjectStats')" class="admin-sidebar-link flex items-center p-3 rounded-lg hover:bg-red-700 transition duration-200 cursor-pointer">
+                            <i class="fas fa-chart-bar mr-3"></i> Subject Stats
+                        </a>
+                    </li>
+                    <li class="mb-3">
+                        <a href="#" onclick="switchAdminView('adminCharts')" class="admin-sidebar-link flex items-center p-3 rounded-lg hover:bg-red-700 transition duration-200 cursor-pointer">
+                            <i class="fas fa-chart-pie mr-3"></i> Overall Charts
+                        </a>
+                    </li>
+                    <li class="mb-3">
+                        <a href="#" onclick="showAddStudentModal()" class="admin-sidebar-link flex items-center p-3 rounded-lg hover:bg-red-700 transition duration-200 cursor-pointer">
+                            <i class="fas fa-user-plus mr-3"></i> Add New Student
+                        </a>
+                    </li>
+                    <li class="mb-3">
+                        <a href="#" onclick="showAddCourseModal()" class="admin-sidebar-link flex items-center p-3 rounded-lg hover:bg-red-700 transition duration-200 cursor-pointer">
+                            <i class="fas fa-folder-plus mr-3"></i> Add New Course
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            <button onclick="logout()" class="w-full bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700 transition duration-300 transform hover:scale-105 shadow-md mt-6">
+                <i class="fas fa-sign-out-alt mr-2"></i> Logout
+            </button>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6 overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
+                <div class="flex gap-4">
+                    <button onclick="refreshData()" class="bg-gray-700 text-white px-5 py-2 rounded-lg hover:bg-gray-800 transition duration-200 shadow-md cursor-pointer">
+                        <i class="fas fa-sync-alt mr-2"></i> Refresh Data
+                    </button>
+                    <button onclick="downloadAdminReport()" class="bg-purple-600 text-white px-5 py-2 rounded-lg hover:bg-purple-700 transition duration-200 shadow-md cursor-pointer">
+                        <i class="fas fa-file-pdf mr-2"></i> Download Report (PDF)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Admin Student List Section -->
+            <section id="adminStudents" class="admin-view">
+                <div class="glassy-card p-6 rounded-xl mb-8">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">All Students Data</h3>
+                    <div class="mb-4">
+                        <input type="text" id="studentSearchInput" onkeyup="filterStudents()" 
+                               class="w-full px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 transition duration-200"
+                               placeholder="Search students by name or ID...">
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full rounded-lg overflow-hidden">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="py-3 px-4">Name</th>
+                                    <th class="py-3 px-4">ID</th>
+                                    <th class="py-3 px-4">Average</th>
+                                    <th class="py-3 px-4">Rank</th>
+                                    <th class="py-3 px-4">Remarks</th>
+                                    <th class="py-3 px-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminStudentsBody" class="divide-y divide-gray-200">
+                                <!-- Student data will be populated here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Admin Subject Statistics Section -->
+            <section id="adminSubjectStats" class="admin-view hidden">
+                <div class="glassy-card p-6 rounded-xl mb-8">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Subject Performance Statistics (Overall)</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full rounded-lg overflow-hidden">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="py-3 px-4">Subject</th>
+                                    <th class="py-3 px-4">Highest Grade</th>
+                                    <th class="py-3 px-4">Lowest Grade</th>
+                                    <th class="py-3 px-4">Class Average</th>
+                                    <th class="py-3 px-4">Distribution (E / VG / G / NI)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="subjectStatsBody" class="divide-y divide-gray-200">
+                                <!-- Subject stats will be populated here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Admin Charts Section -->
+            <section id="adminCharts" class="admin-view hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="glassy-card p-6 rounded-xl">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Class Averages by Subject (Overall)</h3>
+                        <canvas id="adminBarChart"></canvas>
+                    </div>
+                    <div class="glassy-card p-6 rounded-xl">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Academic Honors Distribution (Overall)</h3>
+                        <canvas id="adminPieChart"></canvas>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Teacher Dashboard -->
+    <div id="teacherDashboard" class="hidden flex-1 flex flex-col lg:flex-row">
+        <!-- Sidebar -->
+        <aside class="w-full lg:w-64 bg-red-800 text-white p-6 flex flex-col shadow-lg">
+            <div class="text-center mb-8">
+                <div class="w-24 h-24 mx-auto rounded-full bg-red-600 flex items-center justify-center text-3xl font-bold mb-3 shadow-md">TR</div>
+                <h2 class="text-2xl font-bold">Teacher Panel</h2>
+                <p class="text-red-200 text-sm">Grade Management</p>
+            </div>
+            <nav class="flex-1">
+                <ul>
+                    <li class="mb-3">
+                        <a href="#" onclick="switchTeacherView('teacherStudents')" class="teacher-sidebar-link active flex items-center p-3 rounded-lg hover:bg-red-700 transition duration-200 cursor-pointer">
+                            <i class="fas fa-users mr-3"></i> Student Grades
+                        </a>
+                    </li>
+                    <li class="mb-3">
+                        <a href="#" onclick="switchTeacherView('teacherSubjectStats')" class="teacher-sidebar-link flex items-center p-3 rounded-lg hover:bg-red-700 transition duration-200 cursor-pointer">
+                            <i class="fas fa-chart-bar mr-3"></i> Subject Statistics
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            <button onclick="logout()" class="w-full bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700 transition duration-300 transform hover:scale-105 shadow-md mt-6">
+                <i class="fas fa-sign-out-alt mr-2"></i> Logout
+            </button>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6 overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">Teacher Dashboard</h1>
+                <button onclick="refreshData()" class="bg-gray-700 text-white px-5 py-2 rounded-lg hover:bg-gray-800 transition duration-200 shadow-md cursor-pointer">
+                    <i class="fas fa-sync-alt mr-2"></i> Refresh Data
+                </button>
+            </div>
+
+            <!-- Teacher Student List Section -->
+            <section id="teacherStudents" class="teacher-view">
+                <div class="glassy-card p-6 rounded-xl mb-8">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Manage Student Grades</h3>
+                    <div class="mb-4">
+                        <input type="text" id="teacherStudentSearchInput" onkeyup="filterTeacherStudents()" 
+                               class="w-full px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 transition duration-200"
+                               placeholder="Search students by name or ID...">
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full rounded-lg overflow-hidden">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="py-3 px-4">Name</th>
+                                    <th class="py-3 px-4">ID</th>
+                                    <th class="py-3 px-4">Average</th>
+                                    <th class="py-3 px-4">Rank</th>
+                                    <th class="py-3 px-4">Remarks</th>
+                                    <th class="py-3 px-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teacherStudentsBody" class="divide-y divide-gray-200">
+                                <!-- Student data will be populated here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Teacher Subject Statistics Section -->
+            <section id="teacherSubjectStats" class="teacher-view hidden">
+                <div class="glassy-card p-6 rounded-xl mb-8">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Subject Performance Statistics</h3>
+                    <div class="overflow-x-auto mb-6">
+                        <table class="min-w-full rounded-lg overflow-hidden">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="py-3 px-4">Subject</th>
+                                    <th class="py-3 px-4">Highest Grade</th>
+                                    <th class="py-3 px-4">Lowest Grade</th>
+                                    <th class="py-3 px-4">Class Average</th>
+                                    <th class="py-3 px-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teacherSubjectStatsBody" class="divide-y divide-gray-200">
+                                <!-- Subject stats will be populated here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Student Profile Modal (now editable for student, read-only for teacher) -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content glassy-card">
+            <span class="close-button" onclick="hideModal('profileModal')">&times;</span>
+            <h2 class="text-2xl font-bold text-red-800 mb-4">Your Profile</h2>
+            <div class="space-y-3 text-gray-700">
+                <p><strong class="font-semibold">Name:</strong> <span id="modalStudentName"></span></p>
+                <p><strong class="font-semibold">Student ID:</b> <span id="modalStudentId"></span></p>
+                <div>
+                    <strong class="font-semibold">Email:</b>
+                    <span id="displayStudentEmail"></span>
+                    <input type="email" id="editStudentEmail" class="edit-input hidden" placeholder="Enter new email">
+                </div>
+                <div>
+                    <strong class="font-semibold">Contact:</b>
+                    <span id="displayStudentContact"></span>
+                    <input type="text" id="editStudentContact" class="edit-input hidden" placeholder="Enter new contact number">
+                </div>
+                <p><strong class="font-semibold">Overall Average:</b> <span id="modalStudentAverage"></span></p>
+                <p><strong class="font-semibold">Class Rank:</b> <span id="modalStudentRank"></span></p>
+                <p><strong class="font-semibold">Academic Remarks:</b> <span id="modalStudentRemarks"></span></p>
+            </div>
+            <div class="mt-6 flex justify-end gap-4" id="profileModalButtons">
+                <button id="editProfileBtn" onclick="editStudentProfile()" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition duration-200 shadow-md cursor-pointer">
+                    <i class="fas fa-edit mr-2"></i> Edit Profile
+                </button>
+                <button id="saveProfileBtn" onclick="saveStudentProfile()" class="bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 transition duration-200 shadow-md hidden cursor-pointer">
+                    <i class="fas fa-save mr-2"></i> Save Changes
+                </button>
+                <button onclick="hideModal('profileModal')" class="bg-gray-300 text-gray-800 px-5 py-2 rounded-lg hover:bg-gray-400 transition duration-200 shadow-md cursor-pointer">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Student Profile Modal (for Teacher) -->
+    <div id="viewStudentProfileTeacherModal" class="modal">
+        <div class="modal-content glassy-card">
+            <span class="close-button" onclick="hideModal('viewStudentProfileTeacherModal')">&times;</span>
+            <h2 class="text-2xl font-bold text-red-800 mb-4">Student Profile: <span id="viewTeacherStudentName"></span></h2>
+            <div class="space-y-3 text-gray-700">
+                <p><strong class="font-semibold">Student ID:</b> <span id="viewTeacherStudentId"></span></p>
+                <p><strong class="font-semibold">Email:</strong> <span id="viewTeacherStudentEmail"></span></p>
+                <p><strong class="font-semibold">Contact:</strong> <span id="viewTeacherStudentContact"></span></p>
+                <p><strong class="font-semibold">Overall Average:</b> <span id="viewTeacherStudentAverage"></span></p>
+                <p><strong class="font-semibold">Class Rank:</b> <span id="viewTeacherStudentRank"></span></p>
+                <p><strong class="font-semibold">Academic Remarks:</b> <span id="viewTeacherStudentRemarks"></span></p>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="hideModal('viewStudentProfileTeacherModal')" class="bg-gray-300 text-gray-800 px-5 py-2 rounded-lg hover:bg-gray-400 transition duration-200 shadow-md cursor-pointer">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Student Modal -->
+    <div id="addStudentModal" class="modal">
+        <div class="modal-content glassy-card">
+            <span class="close-button" onclick="hideModal('addStudentModal')">&times;</span>
+            <h2 class="text-2xl font-bold text-red-800 mb-4">Add New Student</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="newStudentName" class="block text-gray-700 text-sm font-semibold mb-1">Full Name (e.g., LASTNAME, FIRSTNAME)</label>
+                    <input type="text" id="newStudentName" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 transition duration-200" placeholder="e.g., DOE, JOHN">
+                </div>
+                <div>
+                    <label for="newStudentId" class="block text-gray-700 text-sm font-semibold mb-1">Student ID (13 digits)</label>
+                    <input type="text" id="newStudentId" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 transition duration-200" placeholder="e.g., 1234567890123">
+                </div>
+                <div>
+                    <label for="newStudentEmail" class="block text-gray-700 text-sm font-semibold mb-1">Email</label>
+                    <input type="email" id="newStudentEmail" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 transition duration-200" placeholder="e.g., john.doe@university.edu">
+                </div>
+                <div>
+                    <label for="newStudentContact" class="block text-gray-700 text-sm font-semibold mb-1">Contact Number</label>
+                    <input type="text" id="newStudentContact" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 transition duration-200" placeholder="e.g., 09XXXXXXXXX">
+                </div>
+                <!-- Subject Grades - dynamic based on existing subjects for all years/semesters -->
+                <h3 class="text-lg font-semibold text-gray-800 mt-4 mb-2">Subject Grades (1.00 - 5.00)</h3>
+                <div id="newStudentGradesInput" class="space-y-4">
+                    <!-- Inputs for existing subjects across all years/semesters will be dynamically added here -->
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-4">
+                <button onclick="addNewStudent()" class="bg-red-800 text-white px-5 py-2 rounded-lg hover:bg-red-900 transition duration-200 shadow-md cursor-pointer">Add Student</button>
+                <button onclick="hideModal('addStudentModal')" class="bg-gray-300 text-gray-800 px-5 py-2 rounded-lg hover:bg-gray-400 transition duration-200 shadow-md cursor-pointer">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Course Modal -->
+    <div id="addCourseModal" class="modal">
+        <div class="modal-content glassy-card">
+            <span class="close-button" onclick="hideModal('addCourseModal')">&times;</span>
+            <h2 class="text-2xl font-bold text-red-800 mb-4">Add New Course</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="newCourseName" class="block text-gray-700 text-sm font-semibold mb-1">Course Name (e.g., Data Science 201)</label>
+                    <input type="text" id="newCourseName" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 transition duration-200" placeholder="e.g., Data Science 201">
+                </div>
+                <div>
+                    <label for="newCourseCode" class="block text-gray-700 text-sm font-semibold mb-1">Course Code (e.g., DS201)</label>
+                    <input type="text" id="newCourseCode" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 transition duration-200" placeholder="e.g., DS201">
+                </div>
+                <div>
+                    <label for="defaultNewCourseGrade" class="block text-gray-700 text-sm font-semibold mb-1">Default Grade for Existing Students (1.00 - 5.00)</label>
+                    <input type="number" step="0.01" min="1" max="5" value="3.00" id="defaultNewCourseGrade" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 transition duration-200">
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-4">
+                <button onclick="addNewCourse()" class="bg-red-800 text-white px-5 py-2 rounded-lg hover:bg-red-900 transition duration-200 shadow-md cursor-pointer">Add Course</button>
+                <button onclick="hideModal('addCourseModal')" class="bg-gray-300 text-gray-800 px-5 py-2 rounded-lg hover:bg-gray-400 transition duration-200 shadow-md cursor-pointer">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Edit Student Grades Modal -->
+    <div id="editStudentGradesAdminModal" class="modal">
+        <div class="modal-content glassy-card">
+            <span class="close-button" onclick="hideModal('editStudentGradesAdminModal')">&times;</span>
+            <h2 class="text-2xl font-bold text-red-800 mb-4">Edit Grades for <span id="adminEditStudentName"></span></h2>
+
+            <!-- Year Tabs for Admin Edit Modal -->
+            <div id="adminEditYearTabs" class="flex flex-wrap gap-3 mb-6">
+                <!-- Year buttons for editing grades will be populated here -->
+            </div>
+
+            <!-- Semester Tabs and Grade Inputs for Admin Edit Modal -->
+            <div id="adminEditGradesContent" class="space-y-4">
+                <!-- Semester tabs and grade inputs will be populated here -->
+            </div>
+
+            <div class="mt-6 flex justify-end gap-4">
+                <button id="saveAdminGradesBtn" class="bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 transition duration-200 shadow-md cursor-pointer">
+                    <i class="fas fa-save mr-2"></i> Save Changes
+                </button>
+                <button onclick="hideModal('editStudentGradesAdminModal')" class="bg-gray-300 text-gray-800 px-5 py-2 rounded-lg hover:bg-gray-400 transition duration-200 shadow-md cursor-pointer">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Teacher Edit Student Grades Modal -->
+    <div id="editStudentGradesTeacherModal" class="modal">
+        <div class="modal-content glassy-card">
+            <span class="close-button" onclick="hideModal('editStudentGradesTeacherModal')">&times;</span>
+            <h2 class="text-2xl font-bold text-red-800 mb-4">Edit Grades for <span id="teacherEditStudentName"></span></h2>
+
+            <!-- Year Tabs for Teacher Edit Modal -->
+            <div id="teacherEditYearTabs" class="flex flex-wrap gap-3 mb-6">
+                <!-- Year buttons for editing grades will be populated here -->
+            </div>
+
+            <!-- Semester Tabs and Grade Inputs for Teacher Edit Modal -->
+            <div id="teacherEditGradesContent" class="space-y-4">
+                <!-- Semester tabs and grade inputs will be populated here -->
+            </div>
+
+            <div class="mt-6 flex justify-end gap-4">
+                <button id="saveTeacherGradesBtn" class="bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 transition duration-200 shadow-md cursor-pointer">
+                    <i class="fas fa-save mr-2"></i> Save Changes
+                </button>
+                <button onclick="hideModal('editStudentGradesTeacherModal')" class="bg-gray-300 text-gray-800 px-5 py-2 rounded-lg hover:bg-gray-400 transition duration-200 shadow-md cursor-pointer">Close</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // Initialize jsPDF globally
+        const { jsPDF } = window.jspdf;
+
+        // --- Data Structure for Students with Years and Semesters ---
+        let students = [
+            { name: "LIGUTOM, SONNY", id: "13644212013701", average: "1.42", rank: "2", remarks: "WITH HIGH HONORS",
+              email: "sonny.ligutom@university.edu", contact: "09123456789",
+              grades: {
+                "1st Year": {
+                  "1st Sem": { "Technology 101": "1.25", "Science 102": "1.25", "Arts 103": "1.5" },
+                  "2nd Sem": { "Philosophy 104": "1.00", "Social Studies 105": "1.75", "Sports 106": "1.75" }
+                },
+                "2nd Year": {
+                  "1st Sem": { "Advanced Programming": "1.50", "Data Structures": "1.25", "Discrete Math": "1.50" },
+                  "2nd Sem": { "Algorithms": "1.00", "Operating Systems": "1.75", "Networking": "1.50" }
+                },
+                "3rd Year": {
+                  "1st Sem": { "Web Development": "1.25", "Database Systems": "1.50", "Software Engineering": "1.75" },
+                  "2nd Sem": { "Machine Learning": "1.25", "Artificial Intelligence": "1.50", "Cybersecurity": "1.00" }
+                },
+                "4th Year": {
+                  "1st Sem": { "Capstone Project I": "1.00", "Internship": "1.00" },
+                  "2nd Sem": { "Capstone Project II": "1.00", "Thesis": "1.00" }
+                }
+              }
+            },
+            { name: "LEDESMA, FRANK", id: "13644212013702", average: "1.67", rank: "8", remarks: "WITH HONORS",
+              email: "frank.ledesma@university.edu", contact: "09234567890",
+              grades: {
+                "1st Year": {
+                  "1st Sem": { "Technology 101": "1.50", "Science 102": "1.00", "Arts 103": "2.00" },
+                  "2nd Sem": { "Philosophy 104": "1.75", "Social Studies 105": "2.00", "Sports 106": "1.75" }
+                },
+                "2nd Year": {
+                  "1st Sem": { "Advanced Programming": "2.00", "Data Structures": "1.75", "Discrete Math": "2.00" },
+                  "2nd Sem": { "Algorithms": "1.50", "Operating Systems": "2.25", "Networking": "2.00" }
+                },
+                "3rd Year": {
+                  "1st Sem": { "Web Development": "2.00", "Database Systems": "2.00", "Software Engineering": "2.25" },
+                  "2nd Sem": { "Machine Learning": "1.75", "Artificial Intelligence": "2.00", "Cybersecurity": "1.50" }
+                },
+                "4th Year": {
+                  "1st Sem": { "Capstone Project I": "1.50", "Internship": "1.75" },
+                  "2nd Sem": { "Capstone Project II": "1.75", "Thesis": "1.50" }
+                }
+              }
+            },
+            { name: "PINEDA, SHANIA", id: "13644212013703", average: "1.46", rank: "3", remarks: "WITH HIGH HONORS",
+              email: "shania.pineda@university.edu", contact: "09345678901",
+              grades: {
+                "1st Year": {
+                  "1st Sem": { "Technology 101": "1.75", "Science 102": "1.00", "Arts 103": "1.50" },
+                  "2nd Sem": { "Philosophy 104": "2.00", "Social Studies 105": "1.25", "Sports 106": "1.25" }
+                },
+                "2nd Year": {
+                  "1st Sem": { "Advanced Programming": "1.25", "Data Structures": "1.50", "Discrete Math": "1.00" },
+                  "2nd Sem": { "Algorithms": "1.75", "Operating Systems": "1.50", "Networking": "1.25" }
+                },
+                "3rd Year": {
+                  "1st Sem": { "Web Development": "1.00", "Database Systems": "1.25", "Software Engineering": "1.50" },
+                  "2nd Sem": { "Machine Learning": "1.00", "Artificial Intelligence": "1.25", "Cybersecurity": "1.00" }
+                },
+                "4th Year": {
+                  "1st Sem": { "Capstone Project I": "1.25", "Internship": "1.00" },
+                  "2nd Sem": { "Capstone Project II": "1.00", "Thesis": "1.25" }
+                }
+              }
+            },
+            { name: "ZARAGOZA, MIEL", id: "13644212013704", average: "1.46", rank: "3", remarks: "WITH HIGH HONORS",
+              email: "miel.zaragoza@university.edu", contact: "09456789012",
+              grades: {
+                "1st Year": {
+                  "1st Sem": { "Technology 101": "2.00", "Science 102": "2.25", "Arts 103": "1.00" },
+                  "2nd Sem": { "Philosophy 104": "1.00", "Social Studies 105": "1.50", "Sports 106": "1.00" }
+                },
+                "2nd Year": {
+                  "1st Sem": { "Advanced Programming": "1.50", "Data Structures": "1.00", "Discrete Math": "1.25" },
+                  "2nd Sem": { "Algorithms": "1.00", "Operating Systems": "1.50", "Networking": "1.00" }
+                },
+                "3rd Year": {
+                  "1st Sem": { "Web Development": "1.25", "Database Systems": "1.00", "Software Engineering": "1.25" },
+                  "2nd Sem": { "Machine Learning": "1.50", "Artificial Intelligence": "1.00", "Cybersecurity": "1.25" }
+                },
+                "4th Year": {
+                  "1st Sem": { "Capstone Project I": "1.50", "Internship": "1.25" },
+                  "2nd Sem": { "Capstone Project II": "1.25", "Thesis": "1.00" }
+                }
+              }
+            },
+            { name: "BERNARDO, RICH", id: "13644212013705", average: "1.67", rank: "8", remarks: "WITH HONORS",
+              email: "rich.bernardo@university.edu", contact: "09567890123",
+              grades: {
+                "1st Year": {
+                  "1st Sem": { "Technology 101": "2.00", "Science 102": "1.25", "Arts 103": "1.75" },
+                  "2nd Sem": { "Philosophy 104": "1.50", "Social Studies 105": "1.75", "Sports 106": "1.75" }
+                },
+                "2nd Year": {
+                  "1st Sem": { "Advanced Programming": "2.25", "Data Structures": "2.00", "Discrete Math": "1.75" },
+                  "2nd Sem": { "Algorithms": "1.75", "Operating Systems": "2.00", "Networking": "2.25" }
+                },
+                "3rd Year": {
+                  "1st Sem": { "Web Development": "1.75", "Database Systems": "1.50", "Software Engineering": "2.00" },
+                  "2nd Sem": { "Machine Learning": "2.00", "Artificial Intelligence": "1.75", "Cybersecurity": "2.25" }
+                },
+                "4th Year": {
+                  "1st Sem": { "Capstone Project I": "2.00", "Internship": "1.75" },
+                  "2nd Sem": { "Capstone Project II": "1.75", "Thesis": "2.00" }
+                }
+              }
+            },
+            { name: "PRUDENTE, ELOISA", id: "13644212013706", average: "1.54", rank: "6", remarks: "WITH HIGH HONORS",
+              email: "eloisa.prudente@university.edu", contact: "09678901234",
+              grades: {
+                "1st Year": {
+                  "1st Sem": { "Technology 101": "1.00", "Science 102": "2.25", "Arts 103": "1.50" },
+                  "2nd Sem": { "Philosophy 104": "2.00", "Social Studies 105": "1.50", "Sports 106": "1.00" }
+                },
+                "2nd Year": {
+                  "1st Sem": { "Advanced Programming": "1.25", "Data Structures": "1.00", "Discrete Math": "1.50" },
+                  "2nd Sem": { "Algorithms": "1.00", "Operating Systems": "1.25", "Networking": "1.00" }
+                },
+                "3rd Year": {
+                  "1st Sem": { "Web Development": "1.50", "Database Systems": "1.00", "Software Engineering": "1.25" },
+                  "2nd Sem": { "Machine Learning": "1.00", "Artificial Intelligence": "1.00", "Cybersecurity": "1.25" }
+                },
+                "4th Year": {
+                  "1st Sem": { "Capstone Project I": "1.00", "Internship": "1.00" },
+                  "2nd Sem": { "Capstone Project II": "1.00", "Thesis": "1.00" }
+                }
+              }
+            },
+            { name: "BUAG, BERNARD", id: "13644212013707", average: "1.25", rank: "1", remarks: "WITH HIGHEST HONORS",
+              email: "bernard.buag@university.edu", contact: "09789012345",
+              grades: {
+                "1st Year": {
+                  "1st Sem": { "Technology 101": "1.00", "Science 102": "1.50", "Arts 103": "1.50" },
+                  "2nd Sem": { "Philosophy 104": "1.25", "Social Studies 105": "1.00", "Sports 106": "1.25" }
+                },
+                "2nd Year": {
+                  "1st Sem": { "Advanced Programming": "1.00", "Data Structures": "1.00", "Discrete Math": "1.00" },
+                  "2nd Sem": { "Algorithms": "1.00", "Operating Systems": "1.00", "Networking": "1.00" }
+                },
+                "3rd Year": {
+                  "1st Sem": { "Web Development": "1.00", "Database Systems": "1.00", "Software Engineering": "1.00" },
+                  "2nd Sem": { "Machine Learning": "1.00", "Artificial Intelligence": "1.00", "Cybersecurity": "1.00" }
+                },
+                "4th Year": {
+                  "1st Sem": { "Capstone Project I": "1.00", "Internship": "1.00" },
+                  "2nd Sem": { "Capstone Project II": "1.00", "Thesis": "1.00" }
+                }
+              }
+            },
+            { name: "BERMUDO, NICOLE", id: "13644212013708", average: "1.54", rank: "6", remarks: "WITH HIGH HONORS",
+              email: "nicole.bermudo@university.edu", contact: "09890123456",
+              grades: {
+                "1st Year": {
+                  "1st Sem": { "Technology 101": "1.50", "Science 102": "1.25", "Arts 103": "1.25" },
+                  "2nd Sem": { "Philosophy 104": "1.75", "Social Studies 105": "2.00", "Sports 106": "1.50" }
+                },
+                "2nd Year": {
+                  "1st Sem": { "Advanced Programming": "1.75", "Data Structures": "1.50", "Discrete Math": "1.75" },
+                  "2nd Sem": { "Algorithms": "1.50", "Operating Systems": "1.75", "Networking": "1.50" }
+                },
+                "3rd Year": {
+                  "1st Sem": { "Web Development": "1.75", "Database Systems": "1.50", "Software Engineering": "1.75" },
+                  "2nd Sem": { "Machine Learning": "1.50", "Artificial Intelligence": "1.75", "Cybersecurity": "1.50" }
+                },
+                "4th Year": {
+                  "1st Sem": { "Capstone Project I": "1.50", "Internship": "1.50" },
+                  "2nd Sem": { "Capstone Project II": "1.50", "Thesis": "1.50" }
+                }
+              }
+            },
+            { name: "BORJA, JULYEN", id: "13644212013709", average: "1.50", rank: "5", remarks: "WITH HIGH HONORS",
+              email: "julyen.borja@university.edu", contact: "09901234567",
+              grades: {
+                "1st Year": {
+                  "1st Sem": { "Technology 101": "1.25", "Science 102": "1.50", "Arts 103": "1.50" },
+                  "2nd Sem": { "Philosophy 104": "1.50", "Social Studies 105": "2.25", "Sports 106": "1.00" }
+                },
+                "2nd Year": {
+                  "1st Sem": { "Advanced Programming": "1.50", "Data Structures": "1.25", "Discrete Math": "1.50" },
+                  "2nd Sem": { "Algorithms": "1.25", "Operating Systems": "1.50", "Networking": "1.25" }
+                },
+                "3rd Year": {
+                  "1st Sem": { "Web Development": "1.50", "Database Systems": "1.25", "Software Engineering": "1.50" },
+                  "2nd Sem": { "Machine Learning": "1.25", "Artificial Intelligence": "1.50", "Cybersecurity": "1.25" }
+                },
+                "4th Year": {
+                  "1st Sem": { "Capstone Project I": "1.25", "Internship": "1.25" },
+                  "2nd Sem": { "Capstone Project II": "1.25", "Thesis": "1.25" }
+                }
+              }
+            }
+        ];
+
+        // Define the fixed academic years and semesters for iteration
+        const ACADEMIC_YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
+        const SEMESTERS = ["1st Sem", "2nd Sem"];
+
+
+        // Chart instances for admin dashboard
+        let adminBarChart, adminPieChart;
+
+        /**
+         * Utility function to get initials from a full name.
+         * Used for avatar display.
+         * @param {string} fullName - The full name (e.g., "LASTNAME, FIRSTNAME").
+         * @returns {string} Initials (e.g., "LS").
+         */
+        function getInitials(fullName) {
+            if (!fullName) return '';
+            const parts = fullName.split(',');
+            if (parts.length > 1) {
+                const lastNameInitial = parts[0].trim().charAt(0);
+                const firstNameInitial = parts[1].trim().charAt(0);
+                return `${lastNameInitial}${firstNameInitial}`.toUpperCase();
+            }
+            return fullName.charAt(0).toUpperCase();
+        }
+
+        /**
+         * Safely extracts the first name from a full name string.
+         * Assumes format "LASTNAME, FIRSTNAME" or just "FIRSTNAME".
+         * @param {string} fullName - The full name.
+         * @returns {string} The first name or an empty string if parsing fails.
+         */
+        function getFirstName(fullName) {
+            if (!fullName) return '';
+            const parts = fullName.split(',');
+            if (parts.length > 1) {
+                return parts[1].trim();
+            } else {
+                return parts[0].trim(); // Assume it's just the first name if no comma
+            }
+        }
+
+        /**
+         * Safely extracts the last name from a full name string.
+         * Assumes format "LASTNAME, FIRSTNAME" or just "LASTNAME".
+         * @param {string} fullName - The full name.
+         * @returns {string} The last name or an empty string if parsing fails.
+         */
+        function getLastName(fullName) {
+            if (!fullName) return '';
+            const parts = fullName.split(',');
+            return parts[0].trim();
+        }
+
+        /**
+         * Generates a random full name for a teacher.
+         * @returns {string} A randomly generated teacher's full name.
+         */
+        function generateRandomTeacherName() {
+            const firstNames = ["Alice", "Bob", "Charlie", "Diana", "Edward", "Fiona", "George", "Hannah", "Ivan", "Julia"];
+            const lastNames = ["Smith", "Jones", "Williams", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson"];
+            const randomFirstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+            const randomLastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+            return `${randomFirstName} ${randomLastName}`;
+        }
+
+        /**
+         * Displays an error message on the login page.
+         * @param {string} message - The error message to display.
+         */
+        function showError(message) {
+            const errorElement = document.getElementById('error');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+
+        /**
+         * Displays a toast notification.
+         * @param {string} message - The message to display.
+         * @param {boolean} isError - True if it's an error message, false otherwise.
+         */
+        function showToast(message, isError = false) {
+            const toast = document.getElementById("toast");
+            toast.textContent = message;
+            toast.className = "toast show"; // Add 'show' class to make it visible
+            if (isError) {
+                toast.classList.add("error");
+            } else {
+                toast.classList.remove("error");
+            }
+            setTimeout(function(){
+                toast.className = toast.className.replace("show", "");
+                if (isError) {
+                    toast.classList.remove("error");
+                }
+            }, 3000); // Hide after 3 seconds
+        }
+
+        /**
+         * Shows a modal dialog.
+         * @param {string} modalId - The ID of the modal to show.
+         */
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+
+        /**
+         * Hides a modal dialog.
+         * @param {string} modalId - The ID of the modal to hide.
+         */
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        /**
+         * Handles user login, authenticating as student or admin or teacher.
+         */
+        function login() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const errorElement = document.getElementById('error');
+
+            // Reset error message
+            errorElement.style.display = 'none';
+
+            // Check for empty fields
+            if (!username || !password) {
+                showError('Please enter both username and password.');
+                return;
+            }
+
+            // Check for admin login
+            if (username.toUpperCase() === "(ADMIN)" && password.toUpperCase() === "(ADMIN)") {
+                // Hide login page, show admin dashboard
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'none'; // Hide student dashboard
+                document.getElementById('teacherDashboard').style.display = 'none'; // Hide teacher dashboard
+                document.getElementById('adminDashboard').style.display = 'flex'; // Use flex for layout
+
+                // Populate admin views
+                populateAdminStudents();
+                populateSubjectStats();
+                renderAdminCharts();
+                switchAdminView('adminStudents'); // Default view
+                showToast('Admin login successful.');
+                return;
+            }
+
+            // Check for teacher login
+            if (username.toLowerCase() === "teacher@university.edu" && password === "1421") {
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'none'; // Hide student dashboard
+                document.getElementById('adminDashboard').style.display = 'none'; // Hide admin dashboard
+                document.getElementById('teacherDashboard').style.display = 'flex'; // Show teacher dashboard
+
+                populateTeacherDashboard();
+                switchTeacherView('teacherStudents'); // Default view for teacher
+                showToast('Teacher login successful.');
+                return;
+            }
+
+            // Find student by name and ID
+            const student = students.find(s => s.name.toUpperCase() === username.toUpperCase() && s.id === password);
+
+            if (student) {
+                // Hide login page, show dashboard
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('adminDashboard').style.display = 'none'; // Hide admin dashboard
+                document.getElementById('teacherDashboard').style.display = 'none'; // Hide teacher dashboard
+                document.getElementById('dashboard').style.display = 'flex'; // Use flex for layout
+
+                // Populate student info
+                populateStudentDashboard(student);
+                switchStudentView('studentOverview'); // Default view
+                showToast('Login successful.');
+            } else {
+                showError('Invalid username or password. Please try again.');
+            }
+        }
+
+        /**
+         * Logs out the current user and returns to the login page.
+         */
+        function logout() {
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('adminDashboard').style.display = 'none';
+            document.getElementById('teacherDashboard').style.display = 'none'; // Hide teacher dashboard
+            document.getElementById('loginPage').style.display = 'flex'; // Show login page
+            document.getElementById('username').value = ''; // Clear username
+            document.getElementById('password').value = ''; // Clear password
+            showToast('Logged out successfully.');
+        }
+
+        // --- Student Dashboard Functions ---
+
+        let currentStudentLoggedIn = null; // Stores the currently logged-in student object
+
+        /**
+         * Populates the student dashboard with the given student's data.
+         * @param {object} student - The student object.
+         */
+        function populateStudentDashboard(student) {
+            currentStudentLoggedIn = student; // Set current student
+
+            // Header info
+            document.getElementById('headerStudentName').textContent = getFirstName(student.name) + ' ' + getLastName(student.name);
+            document.getElementById('headerStudentNameShort').textContent = getFirstName(student.name);
+            document.getElementById('userAvatar').textContent = getInitials(student.name);
+            document.getElementById('studentId').textContent = student.id; // Display student ID in sidebar
+
+            // Welcome card
+            document.getElementById('welcomeStudentName').textContent = getFirstName(student.name);
+
+            // Stats cards
+            document.getElementById('statAverage').textContent = student.average;
+            document.getElementById('statRank').textContent = student.rank;
+            document.getElementById('statHonors').textContent = student.remarks || "None";
+
+            // Profile modal data
+            document.getElementById('modalStudentName').textContent = student.name;
+            document.getElementById('modalStudentId').textContent = student.id;
+            document.getElementById('displayStudentEmail').textContent = student.email;
+            document.getElementById('displayStudentContact').textContent = student.contact || 'N/A';
+            document.getElementById('modalStudentAverage').textContent = student.average;
+            document.getElementById('modalStudentRank').textContent = student.rank;
+            document.getElementById('modalStudentRemarks').textContent = student.remarks || 'None';
+
+            // Populate year and semester tabs
+            populateStudentGradesTabs(student);
+        }
+
+        /**
+         * Populates the year and semester navigation tabs for the student's grades section.
+         * @param {object} student - The student object.
+         */
+        function populateStudentGradesTabs(student) {
+            const studentYearTabs = document.getElementById('studentYearTabs');
+            const studentGradesContent = document.getElementById('studentGradesContent');
+            studentYearTabs.innerHTML = '';
+            studentGradesContent.innerHTML = '';
+
+            let firstYear = true;
+            let firstSem = true;
+
+            ACADEMIC_YEARS.forEach(year => {
+                // Create year tab button
+                const yearButton = document.createElement('button');
+                yearButton.classList.add('tab-button');
+                yearButton.textContent = year;
+                yearButton.onclick = () => switchStudentYear(student, year);
+                if (firstYear) {
+                    yearButton.classList.add('active');
+                }
+                studentYearTabs.appendChild(yearButton);
+
+                // Create content div for the year
+                const yearContentDiv = document.createElement('div');
+                yearContentDiv.id = `year-${year.replace(/\s/g, '-')}`;
+                yearContentDiv.classList.add('tab-content');
+                if (firstYear) {
+                    yearContentDiv.classList.add('active');
+                }
+
+                const semesterTabsDiv = document.createElement('div');
+                semesterTabsDiv.id = `studentSemesterTabs-${year.replace(/\s/g, '-')}`;
+                semesterTabsDiv.classList.add('flex', 'flex-wrap', 'gap-3', 'mb-6');
+                yearContentDiv.appendChild(semesterTabsDiv);
+
+                const table = document.createElement('table');
+                table.classList.add('min-w-full', 'rounded-lg', 'overflow-hidden');
+                table.innerHTML = `
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                            <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
+                            <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gradesBody-${year.replace(/\s/g, '-')}" class="divide-y divide-gray-200">
+                        <!-- Grades will be populated here -->
+                    </tbody>
+                `;
+                yearContentDiv.appendChild(table);
+                studentGradesContent.appendChild(yearContentDiv);
+
+                firstSem = true; // Reset for each year
+                SEMESTERS.forEach(semester => {
+                    // Create semester tab button
+                    const semButton = document.createElement('button');
+                    semButton.classList.add('tab-button', 'text-sm');
+                    semButton.textContent = semester;
+                    semButton.onclick = () => switchStudentSemester(student, year, semester);
+                    if (firstSem && firstYear) {
+                        semButton.classList.add('active');
+                    }
+                    semesterTabsDiv.appendChild(semButton);
+                    firstSem = false;
+                });
+                firstYear = false;
+            });
+
+            // After creating all tabs, activate the first one
+            // We ensure to call switchStudentYear only after all buttons are appended
+            // This also ensures that the default view is correctly set.
+            if (ACADEMIC_YEARS.length > 0) {
+                switchStudentYear(student, ACADEMIC_YEARS[0]);
+            }
+        }
+
+        /**
+         * Switches the active academic year view in the student dashboard.
+         * @param {object} student - The student object.
+         * @param {string} selectedYear - The academic year to display (e.g., "1st Year").
+         */
+        function switchStudentYear(student, selectedYear) {
+            // Deactivate all year buttons
+            document.querySelectorAll('#studentYearTabs .tab-button').forEach(btn => btn.classList.remove('active'));
+
+            // Activate the selected year button
+            // Iterate and find the button by textContent for reliability
+            document.querySelectorAll('#studentYearTabs .tab-button').forEach(btn => {
+                if (btn.textContent.trim() === selectedYear) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Deactivate all year content divs
+            document.querySelectorAll('#studentGradesContent .tab-content').forEach(content => content.classList.remove('active'));
+
+            // Activate the selected year content div
+            const yearContentDiv = document.getElementById(`year-${selectedYear.replace(/\s/g, '-')}`);
+            if (yearContentDiv) { // Add null check
+                yearContentDiv.classList.add('active');
+            }
+
+
+            // Automatically switch to the first semester of the selected year
+            switchStudentSemester(student, selectedYear, SEMESTERS[0]);
+        }
+
+        /**
+         * Switches the active semester view for the current academic year in the student dashboard.
+         * @param {object} student - The student object.
+         * @param {string} selectedYear - The academic year.
+         * @param {string} selectedSemester - The semester to display (e.g., "1st Sem").
+         */
+        function switchStudentSemester(student, selectedYear, selectedSemester) {
+            const semesterTabsDiv = document.getElementById(`studentSemesterTabs-${selectedYear.replace(/\s/g, '-')}`);
+
+            if (semesterTabsDiv) { // Ensure semesterTabsDiv exists
+                // Deactivate all semester buttons for the current year
+                semesterTabsDiv.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+
+                // Activate the selected semester button
+                // Iterate and find the button by textContent for reliability
+                semesterTabsDiv.querySelectorAll('.tab-button').forEach(btn => {
+                    if (btn.textContent.trim() === selectedSemester) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
+
+            // Render grades for the selected year and semester
+            renderStudentGradesTable(student, selectedYear, selectedSemester);
+        }
+
+        /**
+         * Renders the grades table for a specific student, year, and semester.
+         * @param {object} student - The student object.
+         * @param {string} year - The academic year.
+         * @param {string} semester - The semester.
+         */
+        function renderStudentGradesTable(student, year, semester) {
+            const gradesBodyId = `gradesBody-${year.replace(/\s/g, '-')}`;
+            const gradesBody = document.getElementById(gradesBodyId);
+            
+            // Add null check for gradesBody
+            if (!gradesBody) {
+                console.error(`Error: gradesBody element with ID ${gradesBodyId} not found.`);
+                return;
+            }
+
+            gradesBody.innerHTML = ''; // Clear previous entries
+
+            const semesterGrades = student.grades[year] ? student.grades[year][semester] : {};
+
+            if (Object.keys(semesterGrades).length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="3" class="py-2 px-4 text-center text-gray-500">No grades recorded for this semester.</td>`;
+                gradesBody.appendChild(row);
+                return;
+            }
+
+            for (const [subject, grade] of Object.entries(semesterGrades)) {
+                const row = document.createElement('tr');
+                const gradeNum = parseFloat(grade);
+                let gradeClass = '';
+                let remarks = '';
+
+                // Determine remarks based on grade range for individual subjects
+                if (gradeNum >= 1.00 && gradeNum <= 1.50) {
+                    gradeClass = 'grade-A';
+                    remarks = 'Excellent';
+                } else if (gradeNum > 1.50 && gradeNum <= 2.00) {
+                    gradeClass = 'grade-B';
+                    remarks = 'Very Good';
+                } else if (gradeNum > 2.00 && gradeNum <= 2.50) {
+                    gradeClass = 'grade-C';
+                    remarks = 'Good';
+                } else {
+                    gradeClass = 'grade-D';
+                    remarks = 'Needs Improvement';
+                }
+
+                row.innerHTML = `
+                    <td class="py-2 px-4">${subject}</td>
+                    <td class="py-2 px-4 font-semibold ${gradeClass}">${grade}</td>
+                    <td class="py-2 px-4 text-gray-600">${remarks}</td>
+                `;
+                gradesBody.appendChild(row);
+            }
+        }
+
+        /**
+         * Calculates the distribution of grades into performance categories.
+         * @param {object} student - The student object.
+         * @returns {number[]} An array of counts for each performance category.
+         */
+        function calculatePerformanceDistribution(student) {
+            let excellent = 0, veryGood = 0, good = 0, needsImprovement = 0;
+            for (const year in student.grades) {
+                for (const semester in student.grades[year]) {
+                    for (const grade of Object.values(student.grades[year][semester])) {
+                        const gradeNum = parseFloat(grade);
+                        if (gradeNum >= 1.00 && gradeNum <= 1.50) excellent++;
+                        else if (gradeNum > 1.50 && gradeNum <= 2.00) veryGood++;
+                        else if (gradeNum > 2.00 && gradeNum <= 2.50) good++;
+                        else needsImprovement++;
+                    }
+                }
+            }
+            return [excellent, veryGood, good, needsImprovement];
+        }
+
+        /**
+         * Prints the current student's grades (will print the visible grades table).
+         */
+        function printGrades() {
+            window.print();
+        }
+
+        /**
+         * Calculates the rank of a specific student in a given subject across all students.
+         * @param {object} targetStudent - The student whose rank is being calculated.
+         * @param {string} subjectName - The name of the subject.
+         * @returns {string} The rank (e.g., "1st", "2nd", "N/A" if no valid grade).
+         */
+        function getSubjectRank(targetStudent, subjectName) {
+            const studentGradesInSubject = [];
+
+            // Collect all valid grades for this subject from all students
+            students.forEach(student => {
+                ACADEMIC_YEARS.forEach(year => {
+                    SEMESTERS.forEach(semester => {
+                        const grade = parseFloat(student.grades?.[year]?.[semester]?.[subjectName]);
+                        if (!isNaN(grade)) {
+                            studentGradesInSubject.push({ id: student.id, name: student.name, grade: grade });
+                        }
+                    });
+                });
+            });
+
+            if (studentGradesInSubject.length === 0) {
+                return 'N/A';
+            }
+
+            // Sort by grade (lower is better)
+            studentGradesInSubject.sort((a, b) => a.grade - b.grade);
+
+            let rank = 'N/A';
+            let currentRank = 1;
+            for (let i = 0; i < studentGradesInSubject.length; i++) {
+                if (i > 0 && studentGradesInSubject[i].grade !== studentGradesInSubject[i - 1].grade) {
+                    currentRank = i + 1;
+                }
+                if (studentGradesInSubject[i].id === targetStudent.id) {
+                    rank = `${currentRank}${getOrdinalSuffix(currentRank)}`;
+                    break;
+                }
+            }
+            return rank;
+        }
+
+        /**
+         * Returns the ordinal suffix for a number (e.g., "st", "nd", "rd", "th").
+         * @param {number} n - The number.
+         * @returns {string} The ordinal suffix.
+         */
+        function getOrdinalSuffix(n) {
+            const s = ["th", "st", "nd", "rd"];
+            const v = n % 100;
+            return s[(v - 20) % 10] || s[v] || s[0];
+        }
+
+        /**
+         * Downloads the current student's grades as a PDF (full transcript).
+         */
+        function downloadGrades() {
+            try {
+                const studentId = document.getElementById('studentId').textContent;
+                const student = students.find(s => s.id === studentId);
+
+                if (!student) {
+                    showToast('Student data not found for PDF generation.', true);
+                    return;
+                }
+
+                const doc = new jsPDF();
+                let yPos = 20;
+
+                // Add university header
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(22);
+                doc.setTextColor(128, 0, 32); // Maroon color
+                doc.text('UNIVERSITY OF EXCELLENCE', 105, yPos, { align: 'center' });
+                yPos += 10;
+
+                doc.setFontSize(12);
+                doc.setTextColor(50, 50, 50);
+                doc.text('Academic Transcript', 105, yPos, { align: 'center' });
+                yPos += 10;
+                doc.line(20, yPos, 190, yPos); // Horizontal line
+                yPos += 10;
+
+                // Student Information
+                doc.setFontSize(14);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`Student Name: ${student.name}`, 20, yPos);
+                yPos += 7;
+                doc.text(`Student ID: ${student.id}`, 20, yPos);
+                yPos += 7;
+                doc.text(`Overall Average: ${student.average}`, 20, yPos);
+                yPos += 7;
+                doc.text(`Class Rank: ${student.rank}`, 20, yPos);
+                yPos += 7;
+                doc.text(`Academic Remarks: ${student.remarks || "None"}`, 20, yPos);
+                yPos += 10; // Extra space before grades
+
+                // Iterate through years and semesters for grades
+                ACADEMIC_YEARS.forEach(year => {
+                    SEMESTERS.forEach(semester => {
+                        const semesterGrades = student.grades[year]?.[semester];
+                        if (semesterGrades && Object.keys(semesterGrades).length > 0) {
+                            if (yPos + 40 > doc.internal.pageSize.height - 20) { // Check if new page is needed
+                                doc.addPage();
+                                yPos = 20;
+                            }
+                            doc.setFontSize(12);
+                            doc.setTextColor(128, 0, 32); // Maroon
+                            doc.text(`${year} - ${semester}`, 20, yPos);
+                            yPos += 8;
+
+                            const tableColumn = ["Subject", "Grade", "Subject Rank", "Teacher", "Remarks"];
+                            const tableRows = [];
+
+                            for (const [subject, grade] of Object.entries(semesterGrades)) {
+                                const gradeNum = parseFloat(grade);
+                                let remarks = '';
+                                if (gradeNum >= 1.00 && gradeNum <= 1.50) remarks = 'Excellent';
+                                else if (gradeNum > 1.50 && gradeNum <= 2.00) remarks = 'Very Good';
+                                else if (gradeNum > 2.00 && gradeNum <= 2.50) remarks = 'Good';
+                                else if (gradeNum > 2.50 && gradeNum <= 3.00) remarks = 'Passed';
+                                else remarks = 'Failed';
+
+                                const subjectRank = getSubjectRank(student, subject);
+                                const teacherName = generateRandomTeacherName(); // Generate random teacher name
+
+                                tableRows.push([subject, grade, subjectRank, teacherName, remarks]);
+                            }
+
+                            doc.autoTable({
+                                head: [tableColumn],
+                                body: tableRows,
+                                startY: yPos,
+                                headStyles: {
+                                    fillColor: [128, 0, 32], // Maroon
+                                    textColor: [255, 255, 255],
+                                    fontStyle: 'bold',
+                                    fontSize: 10
+                                },
+                                styles: {
+                                    fontSize: 9,
+                                    cellPadding: 3
+                                },
+                                didDrawPage: function(data) {
+                                    yPos = data.cursor.y + 10; // Update yPos after table
+                                }
+                            });
+                            yPos = doc.autoTable.previous.finalY + 10; // Ensure yPos is updated after autoTable for next section
+                        }
+                    });
+                });
+
+                // Save the PDF
+                doc.save(`${student.name.replace(/, /g, '_')}_Academic_Transcript.pdf`);
+                showToast('Academic transcript PDF downloaded successfully.');
+
+            } catch (error) {
+                console.error("Error generating PDF:", error);
+                showToast('Failed to download transcript PDF. Please try again.', true);
+            }
+        }
+
+        /**
+         * Downloads a comprehensive admin report in PDF format.
+         * Contains all student information and their detailed grades.
+         */
+        function downloadAdminReport() {
+            try {
+                const doc = new jsPDF();
+                let yPos = 20;
+                const pageHeight = doc.internal.pageSize.height;
+
+                // --- Page 1: Title Page / Header ---
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(24);
+                doc.setTextColor(128, 0, 32); // Maroon color
+                doc.text('UNIVERSITY OF EXCELLENCE', 105, yPos, { align: 'center' });
+                yPos += 15;
+                doc.setFontSize(16);
+                doc.setTextColor(50, 50, 50);
+                doc.text('Comprehensive Student Academic Report', 105, yPos, { align: 'center' });
+                yPos += 10;
+                doc.line(20, yPos, 190, yPos); // Horizontal line
+                yPos += 20;
+
+                // --- Section: List of Graduating Students ---
+                if (yPos + 40 > pageHeight - 20) { doc.addPage(); yPos = 20; }
+                doc.setFontSize(18);
+                doc.setTextColor(128, 0, 32);
+                doc.text('I. List of Graduating Students', 20, yPos);
+                yPos += 10;
+
+                const graduatingStudentsTableColumn = ["Name", "ID", "Overall Average", "Rank", "Honors"];
+                const graduatingStudentsTableRows = students.map(s => [s.name, s.id, s.average, s.rank, s.remarks || "None"]);
+
+                doc.autoTable({
+                    head: [graduatingStudentsTableColumn],
+                    body: graduatingStudentsTableRows,
+                    startY: yPos,
+                    margin: { left: 20, right: 20 },
+                    headStyles: { fillColor: [128, 0, 32], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10 },
+                    styles: { fontSize: 9, cellPadding: 3 },
+                    didDrawPage: function(data) { yPos = data.cursor.y + 10; }
+                });
+                yPos = doc.autoTable.previous.finalY + 15; // Update yPos after table, add extra space
+
+
+                // --- Section: Top Student Per Subject ---
+                if (yPos + 40 > pageHeight - 20) { doc.addPage(); yPos = 20; }
+                doc.setFontSize(18);
+                doc.setTextColor(128, 0, 32);
+                doc.text('II. Top Student Per Subject', 20, yPos);
+                yPos += 10;
+
+                const allSubjects = getAllSubjects();
+                const topStudentsPerSubjectRows = [];
+
+                allSubjects.forEach(subject => {
+                    let topGrade = 5.0; // Lower grade is better
+                    let topStudentsForSubject = [];
+
+                    students.forEach(student => {
+                        ACADEMIC_YEARS.forEach(year => {
+                            SEMESTERS.forEach(semester => {
+                                const grade = parseFloat(student.grades?.[year]?.[semester]?.[subject]);
+                                if (!isNaN(grade)) {
+                                    if (grade < topGrade) {
+                                        topGrade = grade;
+                                        topStudentsForSubject = [{ name: student.name, grade: grade }];
+                                    } else if (grade === topGrade) {
+                                        topStudentsForSubject.push({ name: student.name, grade: grade });
+                                    }
+                                }
+                            });
+                        });
+                    });
+
+                    if (topStudentsForSubject.length > 0) {
+                        const studentNames = topStudentsForSubject.map(s => s.name).join(', ');
+                        topStudentsPerSubjectRows.push([subject, topGrade.toFixed(2), studentNames]);
+                    } else {
+                        topStudentsPerSubjectRows.push([subject, 'N/A', 'No data']);
+                    }
+                });
+
+                doc.autoTable({
+                    head: [["Subject", "Highest Grade", "Top Student(s)"]],
+                    body: topStudentsPerSubjectRows,
+                    startY: yPos,
+                    margin: { left: 20, right: 20 },
+                    headStyles: { fillColor: [128, 0, 32], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10 },
+                    styles: { fontSize: 9, cellPadding: 3 },
+                    didDrawPage: function(data) { yPos = data.cursor.y + 10; }
+                });
+                yPos = doc.autoTable.previous.finalY + 15;
+
+
+                // --- Section: Special Awards ---
+                if (yPos + 40 > pageHeight - 20) { doc.addPage(); yPos = 20; }
+                doc.setFontSize(18);
+                doc.setTextColor(128, 0, 32);
+                doc.text('III. Special Awards', 20, yPos);
+                yPos += 10;
+
+                const specialAwards = [
+                    "Leadership Award",
+                    "Community Service Award",
+                    "Innovation Award",
+                    "Excellence in Research",
+                    "Outstanding Thesis",
+                    "Sportsmanship Award",
+                    "Arts and Culture Advocate",
+                    "Most Improved Student"
+                ];
+
+                const eligibleStudents = students.filter(s => s.remarks !== "Failed" && s.remarks !== "N/A");
+                const awardedStudents = new Set();
+                const awardedList = [];
+
+                // Randomly assign a few awards
+                let awardsToGive = Math.min(specialAwards.length, Math.floor(eligibleStudents.length / 2) || 1); // Give awards to max half of eligible students, min 1
+                if (eligibleStudents.length > 0) {
+                    for (let i = 0; i < awardsToGive; i++) {
+                        let randomAwardIndex = Math.floor(Math.random() * specialAwards.length);
+                        let randomStudentIndex = Math.floor(Math.random() * eligibleStudents.length);
+
+                        let award = specialAwards[randomAwardIndex];
+                        let student = eligibleStudents[randomStudentIndex];
+
+                        // Ensure unique awards and unique students for awards (as much as possible)
+                        if (!awardedStudents.has(student.id) && !awardedList.some(a => a.award === award)) {
+                            awardedList.push({ award: award, recipient: student.name });
+                            awardedStudents.add(student.id);
+                        } else {
+                            // Try again if already awarded or student has an award
+                            i--;
+                            if (i < -5) break; // Prevent infinite loop if too few eligible students/awards
+                        }
+                    }
+                }
+
+                if (awardedList.length > 0) {
+                    const specialAwardsRows = awardedList.map(item => [item.award, item.recipient]);
+                    doc.autoTable({
+                        head: [["Award", "Recipient(s)"]],
+                        body: specialAwardsRows,
+                        startY: yPos,
+                        margin: { left: 20, right: 20 },
+                        headStyles: { fillColor: [128, 0, 32], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10 },
+                        styles: { fontSize: 9, cellPadding: 3 },
+                        didDrawPage: function(data) { yPos = data.cursor.y + 10; }
+                    });
+                    yPos = doc.autoTable.previous.finalY + 15;
+                } else {
+                    doc.setFontSize(10);
+                    doc.setTextColor(80, 80, 80);
+                    doc.text('No special awards assigned for this report.', 20, yPos);
+                    yPos += 15;
+                }
+
+
+                // --- Section: Graduation Program Flow ---
+                if (yPos + 40 > pageHeight - 20) { doc.addPage(); yPos = 20; }
+                doc.setFontSize(18);
+                doc.setTextColor(128, 0, 32);
+                doc.text('IV. Graduation Program Flow', 20, yPos);
+                yPos += 10;
+
+                const programFlow = [
+                    "1. Processional of Graduates and Faculty",
+                    "2. Invocation",
+                    "3. Philippine National Anthem",
+                    "4. Opening Remarks by the University President",
+                    "5. Introduction of the Guest Speaker",
+                    "6. Commencement Address",
+                    "7. Presentation of Candidates for Graduation",
+                    "8. Conferment of Degrees and Diplomas",
+                    "9. Valedictory Address",
+                    "10. Administration of the Alumni Pledge",
+                    "11. Hymn of the Alma Mater",
+                    "12. Closing Remarks",
+                    "13. Recessional"
+                ];
+
+                doc.setFontSize(10);
+                doc.setTextColor(0, 0, 0);
+                programFlow.forEach((item, index) => {
+                    if (yPos + 8 > pageHeight - 20) { doc.addPage(); yPos = 20; }
+                    doc.text(item, 25, yPos);
+                    yPos += 7;
+                });
+                yPos += 15;
+
+
+                // --- Student Individual Academic Transcripts ---
+                doc.addPage(); // Start new page for individual transcripts for clarity
+                yPos = 20;
+                doc.setFontSize(20);
+                doc.setTextColor(128, 0, 32);
+                doc.text('V. Individual Student Transcripts', 105, yPos, { align: 'center' });
+                yPos += 15;
+
+                students.forEach((student, index) => {
+                    if (index > 0) { // Add page break before each student except the first on this section
+                         if (yPos + 60 > pageHeight - 20) { // Estimate space needed for student header + first section
+                            doc.addPage();
+                            yPos = 20; // Reset yPos for new page
+                        }
+                    }
+
+                    doc.setFontSize(14);
+                    doc.setTextColor(0, 0, 0);
+                    doc.text(`Student Name: ${student.name}`, 20, yPos);
+                    yPos += 7;
+                    doc.text(`Student ID: ${student.id}`, 20, yPos);
+                    yPos += 7;
+                    doc.text(`Overall Average: ${student.average}`, 20, yPos);
+                    yPos += 7;
+                    doc.text(`Class Rank: ${student.rank}`, 20, yPos);
+                    yPos += 7;
+                    doc.text(`Academic Remarks: ${student.remarks || "None"}`, 20, yPos);
+                    yPos += 10; // Extra space before grades
+
+                    ACADEMIC_YEARS.forEach(year => {
+                        SEMESTERS.forEach(semester => {
+                            const semesterGrades = student.grades[year]?.[semester];
+                            if (semesterGrades && Object.keys(semesterGrades).length > 0) {
+                                if (yPos + 40 > doc.internal.pageSize.height - 20) {
+                                    doc.addPage();
+                                    yPos = 20;
+                                }
+                                doc.setFontSize(12);
+                                doc.setTextColor(128, 0, 32); // Maroon
+                                doc.text(`${year} - ${semester}`, 20, yPos);
+                                yPos += 8;
+
+                                const tableColumn = ["Subject", "Grade", "Subject Rank", "Teacher", "Remarks"];
+                                const tableRows = [];
+
+                                for (const [subject, grade] of Object.entries(semesterGrades)) {
+                                    const gradeNum = parseFloat(grade);
+                                    let remarks = '';
+                                    if (gradeNum >= 1.00 && gradeNum <= 1.50) remarks = 'Excellent';
+                                    else if (gradeNum > 1.50 && gradeNum <= 2.00) remarks = 'Very Good';
+                                    else if (gradeNum > 2.00 && gradeNum <= 2.50) remarks = 'Good';
+                                    else if (gradeNum > 2.50 && gradeNum <= 3.00) remarks = 'Passed';
+                                    else remarks = 'Failed';
+
+                                    const subjectRank = getSubjectRank(student, subject);
+                                    const teacherName = generateRandomTeacherName(); // Generate random teacher name
+
+                                    tableRows.push([subject, grade, subjectRank, teacherName, remarks]);
+                                }
+
+                                doc.autoTable({
+                                    head: [tableColumn],
+                                    body: tableRows,
+                                    startY: yPos,
+                                    margin: { left: 20, right: 20 },
+                                    headStyles: { fillColor: [128, 0, 32], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10 },
+                                    styles: { fontSize: 9, cellPadding: 3 },
+                                    didDrawPage: function(data) { yPos = data.cursor.y + 10; }
+                                }
+                                );
+                                yPos = doc.autoTable.previous.finalY + 10;
+                            }
+                        });
+                    });
+                    yPos += 15;
+                });
+
+                doc.save('University_Comprehensive_Student_Report.pdf');
+                showToast('Comprehensive admin report PDF downloaded successfully.');
+
+            } catch (error) {
+                console.error("Error generating admin report PDF:", error);
+                showToast('Failed to download admin report PDF. Please try again.', true);
+            }
+        }
+
+        /**
+         * Populates the admin dashboard's student list table.
+         * @param {string} [filterText=''] - Optional text to filter students by name or ID.
+         */
+        function populateAdminStudents(filterText = '') {
+            const adminBody = document.getElementById('adminStudentsBody');
+            adminBody.innerHTML = ''; // Clear previous entries
+
+            const lowerCaseFilterText = filterText.toLowerCase();
+
+            const filteredStudents = students.filter(student =>
+                student.name.toLowerCase().includes(lowerCaseFilterText) ||
+                student.id.includes(lowerCaseFilterText)
+            );
+
+            if (filteredStudents.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="6" class="py-4 px-4 text-center text-gray-500">No students match your search.</td>`;
+                adminBody.appendChild(row);
+                return;
+            }
+
+            filteredStudents.forEach(student => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="py-2 px-4">${student.name}</td>
+                    <td class="py-2 px-4">${student.id}</td>
+                    <td class="py-2 px-4">${student.average}</td>
+                    <td class="py-2 px-4">${student.rank}</td>
+                    <td class="py-2 px-4">${student.remarks || "None"}</td>
+                    <td class="py-2 px-4">
+                        <button class="bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600 transition duration-200 cursor-pointer mb-1" onclick="showEditStudentGradesAdminModal('${student.id}')">
+                            <i class="fas fa-edit mr-1"></i> Edit
+                        </button>
+                        <button class="bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600 transition duration-200 cursor-pointer" onclick="deleteStudent('${student.id}')">
+                            <i class="fas fa-trash-alt mr-1"></i> Delete
+                        </button>
+                    </td>
+                `;
+                adminBody.appendChild(row);
+            });
+        }
+
+        /**
+         * Filters the student list in the admin panel based on search input.
+         */
+        function filterStudents() {
+            const searchInput = document.getElementById('studentSearchInput');
+            populateAdminStudents(searchInput.value);
+        }
+
+        /**
+         * Deletes a student from the data array after confirmation.
+         * @param {string} studentId - The ID of the student to delete.
+         */
+        function deleteStudent(studentId) {
+            // Using a custom modal for confirmation instead of window.confirm
+            const confirmationModal = document.createElement('div');
+            confirmationModal.classList.add('modal');
+            confirmationModal.innerHTML = `
+                <div class="modal-content glassy-card">
+                    <span class="close-button" onclick="document.body.removeChild(this.parentNode.parentNode)">&times;</span>
+                    <h2 class="text-2xl font-bold text-red-800 mb-4">Confirm Deletion</h2>
+                    <p class="text-gray-700 mb-6">Are you sure you want to delete this student record? This action cannot be undone.</p>
+                    <div class="mt-6 flex justify-end gap-4">
+                        <button class="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition duration-200 shadow-md cursor-pointer" id="confirmDeleteBtn">
+                            Delete
+                        </button>
+                        <button class="bg-gray-300 text-gray-800 px-5 py-2 rounded-lg hover:bg-gray-400 transition duration-200 shadow-md cursor-pointer" onclick="document.body.removeChild(this.parentNode.parentNode)">Cancel</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(confirmationModal);
+            showModal(confirmationModal.id = 'confirmDeleteModal'); // Assign ID and show
+
+            document.getElementById('confirmDeleteBtn').onclick = () => {
+                students = students.filter(student => student.id !== studentId);
+                // If the deleted student was logged in, log them out
+                if (currentStudentLoggedIn && currentStudentLoggedIn.id === studentId) {
+                    currentStudentLoggedIn = null;
+                    logout(); // Log out and return to login screen
+                } else {
+                    recalculateAllStudentRanksAndRemarks(); // Re-rank remaining students
+                    populateAdminStudents(); // Refresh admin student list
+                    populateSubjectStats(); // Refresh subject stats
+                    renderAdminCharts(); // Refresh charts
+                }
+                showToast('Student deleted successfully!');
+                hideModal('confirmDeleteModal'); // Hide the confirmation modal
+                document.body.removeChild(confirmationModal); // Remove from DOM
+            };
+        }
+
+
+        let currentEditStudentId = null; // To keep track of which student's grades are being edited (used by both admin and teacher)
+
+        /**
+         * Shows the modal for editing a specific student's grades (admin view).
+         * @param {string} studentId - The ID of the student whose grades to edit.
+         */
+        function showEditStudentGradesAdminModal(studentId) {
+            currentEditStudentId = studentId;
+            const student = students.find(s => s.id === studentId);
+            if (!student) {
+                showToast('Student not found for editing.', true);
+                return;
+            }
+
+            document.getElementById('adminEditStudentName').textContent = student.name;
+
+            const adminEditYearTabs = document.getElementById('adminEditYearTabs');
+            const adminEditGradesContent = document.getElementById('adminEditGradesContent');
+            adminEditYearTabs.innerHTML = '';
+            adminEditGradesContent.innerHTML = '';
+
+            let firstYear = true;
+
+            ACADEMIC_YEARS.forEach(year => {
+                const yearButton = document.createElement('button');
+                yearButton.classList.add('tab-button');
+                yearButton.textContent = year;
+                yearButton.onclick = () => switchAdminEditYear(student, year);
+                if (firstYear) {
+                    yearButton.classList.add('active');
+                }
+                adminEditYearTabs.appendChild(yearButton);
+
+                const yearContentDiv = document.createElement('div');
+                yearContentDiv.id = `admin-edit-year-${year.replace(/\s/g, '-')}`;
+                yearContentDiv.classList.add('tab-content');
+                if (firstYear) {
+                    yearContentDiv.classList.add('active');
+                }
+
+                const semesterTabsDiv = document.createElement('div');
+                semesterTabsDiv.id = `adminEditSemesterTabs-${year.replace(/\s/g, '-')}`;
+                semesterTabsDiv.classList.add('flex', 'flex-wrap', 'gap-3', 'mb-6');
+                yearContentDiv.appendChild(semesterTabsDiv);
+
+                adminEditGradesContent.appendChild(yearContentDiv);
+
+                let firstSem = true;
+                SEMESTERS.forEach(semester => {
+                    const semButton = document.createElement('button');
+                    semButton.classList.add('tab-button', 'text-sm');
+                    semButton.textContent = semester;
+                    semButton.onclick = () => switchAdminEditSemester(student, year, semester);
+                    if (firstSem && firstYear) {
+                        semButton.classList.add('active');
+                    }
+                    semesterTabsDiv.appendChild(semButton);
+                    firstSem = false;
+                });
+                firstYear = false;
+            });
+
+            // Set up save button listener (remove old one first to prevent duplicates)
+            const saveBtn = document.getElementById('saveAdminGradesBtn');
+            saveBtn.onclick = null; // Remove existing listener
+            saveBtn.onclick = () => saveStudentGradesFromAdminModal();
+
+            // Activate the first year and first semester
+            if (ACADEMIC_YEARS.length > 0) {
+                // Ensure the first year button is activated after all buttons are appended
+                const firstYearButton = adminEditYearTabs.querySelector('.tab-button');
+                if (firstYearButton) {
+                    firstYearButton.classList.add('active');
+                }
+                // Now trigger the switch for the first year and semester
+                switchAdminEditYear(student, ACADEMIC_YEARS[0]);
+            }
+            showModal('editStudentGradesAdminModal'); // Finally show the modal
+        }
+
+        /**
+         * Switches the active academic year view in the admin edit grades modal.
+         * @param {object} student - The student object.
+         * @param {string} selectedYear - The academic year to display.
+         */
+        function switchAdminEditYear(student, selectedYear) {
+            // Deactivate all year buttons
+            document.querySelectorAll('#adminEditYearTabs .tab-button').forEach(btn => btn.classList.remove('active'));
+
+            // Activate the selected year button
+            document.querySelectorAll('#adminEditYearTabs .tab-button').forEach(btn => {
+                if (btn.textContent.trim() === selectedYear) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Deactivate all year content divs
+            document.querySelectorAll('#adminEditGradesContent .tab-content').forEach(content => content.classList.remove('active'));
+
+            // Activate the selected year content div
+            const yearContentDiv = document.getElementById(`admin-edit-year-${selectedYear.replace(/\s/g, '-')}`);
+            if (yearContentDiv) { // Add null check
+                yearContentDiv.classList.add('active');
+            }
+
+
+            // Automatically switch to the first semester of the selected year
+            switchAdminEditSemester(student, selectedYear, SEMESTERS[0]);
+        }
+
+        /**
+         * Switches the active semester view for the current academic year in the admin edit grades modal.
+         * @param {object} student - The student object.
+         * @param {string} selectedYear - The academic year.
+         * @param {string} selectedSemester - The semester to display.
+         */
+        function switchAdminEditSemester(student, selectedYear, selectedSemester) {
+            const semesterTabsDiv = document.getElementById(`adminEditSemesterTabs-${selectedYear.replace(/\s/g, '-')}`);
+
+            if (semesterTabsDiv) { // Ensure semesterTabsDiv exists
+                semesterTabsDiv.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                
+                // Activate the selected semester button
+                semesterTabsDiv.querySelectorAll('.tab-button').forEach(btn => {
+                    if (btn.textContent.trim() === selectedSemester) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
+
+            renderAdminEditGradesInputs(student, selectedYear, selectedSemester);
+        }
+
+        /**
+         * Renders the grade input fields for a specific student, year, and semester in the admin edit modal.
+         * @param {object} student - The student object.
+         * @param {string} year - The academic year.
+         * @param {string} semester - The semester.
+         */
+        function renderAdminEditGradesInputs(student, year, semester) {
+            const yearContentDivId = `admin-edit-year-${year.replace(/\s/g, '-')}`;
+            let gradesInputsDiv = document.getElementById(`adminEditGradesInputs-${year.replace(/\s/g, '-')}-${semester.replace(/\s/g, '-')}`);
+
+            // If gradesInputsDiv doesn't exist for this year-semester, create it
+            if (!gradesInputsDiv) {
+                // Hide all previous grade input sections
+                document.querySelectorAll('.admin-edit-semester-grades-inputs').forEach(div => div.remove());
+
+                gradesInputsDiv = document.createElement('div');
+                gradesInputsDiv.id = `adminEditGradesInputs-${year.replace(/\s/g, '-')}-${semester.replace(/\s/g, '-')}`;
+                gradesInputsDiv.classList.add('grid', 'grid-cols-1', 'md:grid-cols-2', 'gap-4', 'admin-edit-semester-grades-inputs'); // Add a class for easy removal
+                
+                const yearContentContainer = document.getElementById(yearContentDivId);
+                if (yearContentContainer) { // Add null check
+                    yearContentContainer.appendChild(gradesInputsDiv);
+                } else {
+                    console.error(`Error: Year content div with ID ${yearContentDivId} not found for admin edit grades.`);
+                    return;
+                }
+            } else {
+                // If it exists, just clear its content
+                gradesInputsDiv.innerHTML = '';
+            }
+
+            const semesterGrades = student.grades[year] ? student.grades[year][semester] : {};
+
+            // Get all unique subjects across all years/semesters to ensure all possible subjects have an input
+            const allSubjects = getAllSubjects();
+
+            if (allSubjects.length === 0) {
+                gradesInputsDiv.innerHTML = `<p class="col-span-2 text-gray-500">No subjects defined yet. Add a course to start.</p>`;
+                return;
+            }
+
+            allSubjects.sort().forEach(subject => {
+                const currentGrade = semesterGrades[subject] || ''; // Pre-fill with existing grade or empty
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <label for="adminEditGrade-${year.replace(/\s/g, '-')}-${semester.replace(/\s/g, '-')}-${subject.replace(/\s/g, '-')}" class="block text-gray-700 text-sm font-semibold mb-1">${subject}</label>
+                    <input type="number" step="0.01" min="1" max="5" id="adminEditGrade-${year.replace(/\s/g, '-')}-${semester.replace(/\s/g, '-')}-${subject.replace(/\s/g, '-')}" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500" value="${currentGrade}">
+                `;
+                gradesInputsDiv.appendChild(div);
+            });
+        }
+
+        /**
+         * Saves the edited student grades from the admin modal back to the data.
+         */
+        function saveStudentGradesFromAdminModal() {
+            const student = students.find(s => s.id === currentEditStudentId);
+            if (!student) {
+                showToast('Error: Student not found for saving grades.', true);
+                return;
+            }
+
+            let allGradesValid = true;
+            let updatedGrades = JSON.parse(JSON.stringify(student.grades)); // Deep copy to modify
+
+            ACADEMIC_YEARS.forEach(year => {
+                // Ensure the year/semester structure exists for new courses
+                if (!updatedGrades[year]) updatedGrades[year] = {};
+                SEMESTERS.forEach(semester => {
+                    if (!updatedGrades[year][semester]) updatedGrades[year][semester] = {};
+
+                    // Get all unique subjects for this year/semester to process all inputs
+                    const allSubjects = getAllSubjects(); // Get all subjects from the global pool
+
+                    allSubjects.forEach(subject => {
+                        const inputId = `adminEditGrade-${year.replace(/\s/g, '-')}-${semester.replace(/\s/g, '-')}-${subject.replace(/\s/g, '-')}`;
+                        const inputElement = document.getElementById(inputId);
+
+                        if (inputElement) {
+                            const gradeValue = inputElement.value.trim();
+                            if (gradeValue === '') {
+                                // If input is empty, treat as not applicable or null
+                                delete updatedGrades[year][semester][subject]; // Remove the subject if grade is empty
+                            } else {
+                                const gradeNum = parseFloat(gradeValue);
+                                if (isNaN(gradeNum) || gradeNum < 1 || gradeNum > 5) {
+                                    showToast(`Invalid grade for ${subject} in ${year} ${semester}. Must be between 1.00 and 5.00.`, true);
+                                    allGradesValid = false;
+                                    return; // Exit inner loop
+                                }
+                                updatedGrades[year][semester][subject] = gradeNum.toFixed(2);
+                            }
+                        }
+                    });
+                });
+                if (!allGradesValid) return; // Exit outer loop if any grade is invalid
+            });
+
+            if (!allGradesValid) return;
+
+            student.grades = updatedGrades; // Assign the updated grades object
+
+            // Recalculate student's overall average and remarks
+            recalculateStudentAverageAndRemarks(student);
+            recalculateAllStudentRanksAndRemarks(); // Re-rank all students after a change
+
+            // Refresh relevant UI sections
+            populateAdminStudents(); // Refresh the main admin student table
+            populateSubjectStats(); // Refresh subject stats
+            renderAdminCharts(); // Refresh admin charts
+            populateTeacherStudents(); // Also update teacher's view
+            populateTeacherSubjectStats(); // Refresh teacher subject stats
+
+            // If the student whose grades were edited is currently logged in, refresh their dashboard
+            if (currentStudentLoggedIn && currentStudentLoggedIn.id === student.id) {
+                populateStudentDashboard(student);
+            }
+
+            hideModal('editStudentGradesAdminModal');
+            showToast('Student grades updated successfully!');
+        }
+
+        // --- Teacher Dashboard Functions ---
+
+        /**
+         * Populates the teacher dashboard with initial student data.
+         */
+        function populateTeacherDashboard() {
+            populateTeacherStudents(); // List all students for the teacher
+            populateTeacherSubjectStats(); // Populate teacher subject statistics
+        }
+
+        /**
+         * Populates the teacher dashboard's student list table.
+         * @param {string} [filterText=''] - Optional text to filter students by name or ID.
+         */
+        function populateTeacherStudents(filterText = '') {
+            const teacherBody = document.getElementById('teacherStudentsBody');
+            teacherBody.innerHTML = ''; // Clear previous entries
+
+            const lowerCaseFilterText = filterText.toLowerCase();
+
+            const filteredStudents = students.filter(student =>
+                student.name.toLowerCase().includes(lowerCaseFilterText) ||
+                student.id.includes(lowerCaseFilterText)
+            );
+
+            if (filteredStudents.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="6" class="py-4 px-4 text-center text-gray-500">No students match your search.</td>`;
+                teacherBody.appendChild(row);
+                return;
+            }
+
+            filteredStudents.forEach(student => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="py-2 px-4">${student.name}</td>
+                    <td class="py-2 px-4">${student.id}</td>
+                    <td class="py-2 px-4">${student.average}</td>
+                    <td class="py-2 px-4">${student.rank}</td>
+                    <td class="py-2 px-4">${student.remarks || "None"}</td>
+                    <td class="py-2 px-4">
+                        <button class="bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600 transition duration-200 cursor-pointer mb-1" onclick="showEditStudentGradesTeacherModal('${student.id}')">
+                            <i class="fas fa-edit mr-1"></i> Edit Grades
+                        </button>
+                        <button class="bg-gray-500 text-white px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition duration-200 cursor-pointer" onclick="showViewStudentProfileTeacherModal('${student.id}')">
+                            <i class="fas fa-eye mr-1"></i> View Profile
+                        </button>
+                    </td>
+                `;
+                teacherBody.appendChild(row);
+            });
+        }
+
+        /**
+         * Filters the student list in the teacher panel based on search input.
+         */
+        function filterTeacherStudents() {
+            const searchInput = document.getElementById('teacherStudentSearchInput');
+            populateTeacherStudents(searchInput.value);
+        }
+
+        /**
+         * Shows the modal for editing a specific student's grades (teacher view).
+         * @param {string} studentId - The ID of the student whose grades to edit.
+         */
+        function showEditStudentGradesTeacherModal(studentId) {
+            currentEditStudentId = studentId; // Use the shared variable
+            const student = students.find(s => s.id === studentId);
+            if (!student) {
+                showToast('Student not found for editing.', true);
+                return;
+            }
+
+            document.getElementById('teacherEditStudentName').textContent = student.name;
+
+            const teacherEditYearTabs = document.getElementById('teacherEditYearTabs');
+            const teacherEditGradesContent = document.getElementById('teacherEditGradesContent');
+            teacherEditYearTabs.innerHTML = '';
+            teacherEditGradesContent.innerHTML = '';
+
+            let firstYear = true;
+
+            ACADEMIC_YEARS.forEach(year => {
+                const yearButton = document.createElement('button');
+                yearButton.classList.add('tab-button');
+                yearButton.textContent = year;
+                yearButton.onclick = () => switchTeacherEditYear(student, year);
+                if (firstYear) {
+                    yearButton.classList.add('active');
+                }
+                teacherEditYearTabs.appendChild(yearButton);
+
+                const yearContentDiv = document.createElement('div');
+                yearContentDiv.id = `teacher-edit-year-${year.replace(/\s/g, '-')}`;
+                yearContentDiv.classList.add('tab-content');
+                if (firstYear) {
+                    yearContentDiv.classList.add('active');
+                }
+
+                const semesterTabsDiv = document.createElement('div');
+                semesterTabsDiv.id = `teacherEditSemesterTabs-${year.replace(/\s/g, '-')}`;
+                semesterTabsDiv.classList.add('flex', 'flex-wrap', 'gap-3', 'mb-6');
+                yearContentDiv.appendChild(semesterTabsDiv);
+
+                teacherEditGradesContent.appendChild(yearContentDiv);
+
+                let firstSem = true;
+                SEMESTERS.forEach(semester => {
+                    const semButton = document.createElement('button');
+                    semButton.classList.add('tab-button', 'text-sm');
+                    semButton.textContent = semester;
+                    semButton.onclick = () => switchTeacherEditSemester(student, year, semester);
+                    if (firstSem && firstYear) {
+                        semButton.classList.add('active');
+                    }
+                    semesterTabsDiv.appendChild(semButton);
+                    firstSem = false;
+                });
+                firstYear = false;
+            });
+
+            // Set up save button listener (remove old one first to prevent duplicates)
+            const saveBtn = document.getElementById('saveTeacherGradesBtn');
+            saveBtn.onclick = null; // Remove existing listener
+            saveBtn.onclick = () => saveStudentGradesFromTeacherModal();
+
+            // Activate the first year and first semester
+            if (ACADEMIC_YEARS.length > 0) {
+                const firstYearButton = teacherEditYearTabs.querySelector('.tab-button');
+                if (firstYearButton) {
+                    firstYearButton.classList.add('active');
+                }
+                switchTeacherEditYear(student, ACADEMIC_YEARS[0]);
+            }
+            showModal('editStudentGradesTeacherModal');
+        }
+
+        /**
+         * Switches the active academic year view in the teacher edit grades modal.
+         * @param {object} student - The student object.
+         * @param {string} selectedYear - The academic year to display.
+         */
+        function switchTeacherEditYear(student, selectedYear) {
+            document.querySelectorAll('#teacherEditYearTabs .tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('#teacherEditYearTabs .tab-button').forEach(btn => {
+                if (btn.textContent.trim() === selectedYear) {
+                    btn.classList.add('active');
+                }
+            });
+
+            document.querySelectorAll('#teacherEditGradesContent .tab-content').forEach(content => content.classList.remove('active'));
+            const yearContentDiv = document.getElementById(`teacher-edit-year-${selectedYear.replace(/\s/g, '-')}`);
+            if (yearContentDiv) {
+                yearContentDiv.classList.add('active');
+            }
+
+            switchTeacherEditSemester(student, selectedYear, SEMESTERS[0]);
+        }
+
+        /**
+         * Switches the active semester view for the current academic year in the teacher edit grades modal.
+         * @param {object} student - The student object.
+         * @param {string} selectedYear - The academic year.
+         * @param {string} selectedSemester - The semester to display.
+         */
+        function switchTeacherEditSemester(student, selectedYear, selectedSemester) {
+            const semesterTabsDiv = document.getElementById(`teacherEditSemesterTabs-${selectedYear.replace(/\s/g, '-')}`);
+            if (semesterTabsDiv) {
+                semesterTabsDiv.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                semesterTabsDiv.querySelectorAll('.tab-button').forEach(btn => {
+                    if (btn.textContent.trim() === selectedSemester) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
+            renderTeacherEditGradesInputs(student, selectedYear, selectedSemester);
+        }
+
+        /**
+         * Renders the grade input fields for a specific student, year, and semester in the teacher edit modal.
+         * @param {object} student - The student object.
+         * @param {string} year - The academic year.
+         * @param {string} semester - The semester.
+         */
+        function renderTeacherEditGradesInputs(student, year, semester) {
+            const yearContentDivId = `teacher-edit-year-${year.replace(/\s/g, '-')}`;
+            let gradesInputsDiv = document.getElementById(`teacherEditGradesInputs-${year.replace(/\s/g, '-')}-${semester.replace(/\s/g, '-')}`);
+
+            if (!gradesInputsDiv) {
+                document.querySelectorAll('.teacher-edit-semester-grades-inputs').forEach(div => div.remove());
+
+                gradesInputsDiv = document.createElement('div');
+                gradesInputsDiv.id = `teacherEditGradesInputs-${year.replace(/\s/g, '-')}-${semester.replace(/\s/g, '-')}`;
+                gradesInputsDiv.classList.add('grid', 'grid-cols-1', 'md:grid-cols-2', 'gap-4', 'teacher-edit-semester-grades-inputs');
+                
+                const yearContentContainer = document.getElementById(yearContentDivId);
+                if (yearContentContainer) {
+                    yearContentContainer.appendChild(gradesInputsDiv);
+                } else {
+                    console.error(`Error: Year content div with ID ${yearContentDivId} not found for teacher edit grades.`);
+                    return;
+                }
+            } else {
+                gradesInputsDiv.innerHTML = '';
+            }
+
+            const semesterGrades = student.grades[year] ? student.grades[year][semester] : {};
+            const allSubjects = getAllSubjects();
+
+            if (allSubjects.length === 0) {
+                gradesInputsDiv.innerHTML = `<p class="col-span-2 text-gray-500">No subjects defined yet. Add a course to start.</p>`;
+                return;
+            }
+
+            allSubjects.sort().forEach(subject => {
+                const currentGrade = semesterGrades[subject] || '';
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <label for="teacherEditGrade-${year.replace(/\s/g, '-')}-${semester.replace(/\s/g, '-')}-${subject.replace(/\s/g, '-')}" class="block text-gray-700 text-sm font-semibold mb-1">${subject}</label>
+                    <input type="number" step="0.01" min="1" max="5" id="teacherEditGrade-${year.replace(/\s/g, '-')}-${semester.replace(/\s/g, '-')}-${subject.replace(/\s/g, '-')}" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500" value="${currentGrade}">
+                `;
+                gradesInputsDiv.appendChild(div);
+            });
+        }
+
+        /**
+         * Saves the edited student grades from the teacher modal back to the data.
+         */
+        function saveStudentGradesFromTeacherModal() {
+            const student = students.find(s => s.id === currentEditStudentId);
+            if (!student) {
+                showToast('Error: Student not found for saving grades.', true);
+                return;
+            }
+
+            let allGradesValid = true;
+            let updatedGrades = JSON.parse(JSON.stringify(student.grades));
+
+            ACADEMIC_YEARS.forEach(year => {
+                if (!updatedGrades[year]) updatedGrades[year] = {};
+                SEMESTERS.forEach(semester => {
+                    if (!updatedGrades[year][semester]) updatedGrades[year][semester] = {};
+
+                    const allSubjects = getAllSubjects();
+
+                    allSubjects.forEach(subject => {
+                        const inputId = `teacherEditGrade-${year.replace(/\s/g, '-')}-${semester.replace(/\s/g, '-')}-${subject.replace(/\s/g, '-')}`;
+                        const inputElement = document.getElementById(inputId);
+
+                        if (inputElement) {
+                            const gradeValue = inputElement.value.trim();
+                            if (gradeValue === '') {
+                                delete updatedGrades[year][semester][subject];
+                            } else {
+                                const gradeNum = parseFloat(gradeValue);
+                                if (isNaN(gradeNum) || gradeNum < 1 || gradeNum > 5) {
+                                    showToast(`Invalid grade for ${subject} in ${year} ${semester}. Must be between 1.00 and 5.00.`, true);
+                                    allGradesValid = false;
+                                    return;
+                                }
+                                updatedGrades[year][semester][subject] = gradeNum.toFixed(2);
+                            }
+                        }
+                    });
+                });
+                if (!allGradesValid) return;
+            });
+
+            if (!allGradesValid) return;
+
+            student.grades = updatedGrades;
+
+            recalculateStudentAverageAndRemarks(student);
+            recalculateAllStudentRanksAndRemarks();
+
+            // Refresh teacher view
+            populateTeacherStudents();
+            populateTeacherSubjectStats(); // Refresh teacher subject stats
+
+            // Also refresh admin views if they were open in the background (important for data consistency)
+            populateAdminStudents();
+            populateSubjectStats();
+            renderAdminCharts();
+
+            // If the student whose grades were edited is currently logged in, refresh their dashboard
+            if (currentStudentLoggedIn && currentStudentLoggedIn.id === student.id) {
+                populateStudentDashboard(student);
+            }
+
+            hideModal('editStudentGradesTeacherModal');
+            showToast('Student grades updated successfully!');
+        }
+
+        /**
+         * Populates the teacher subject statistics table.
+         */
+        function populateTeacherSubjectStats() {
+            const allSubjects = getAllSubjects();
+            const subjects = Array.from(allSubjects).sort();
+
+            const statsBody = document.getElementById('teacherSubjectStatsBody');
+            statsBody.innerHTML = '';
+
+            subjects.forEach(subject => {
+                let highestGrade = 5.0;
+                let lowestGrade = 1.0;
+                let sum = 0;
+                let count = 0;
+
+                students.forEach(student => {
+                    ACADEMIC_YEARS.forEach(year => {
+                        SEMESTERS.forEach(semester => {
+                            const grade = parseFloat(student.grades?.[year]?.[semester]?.[subject]);
+                            if (!isNaN(grade)) {
+                                sum += grade;
+                                count++;
+                                if (grade < highestGrade) highestGrade = grade;
+                                if (grade > lowestGrade) lowestGrade = grade;
+                            }
+                        });
+                    });
+                });
+
+                const average = count > 0 ? (sum / count).toFixed(2) : 'N/A';
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="py-2 px-4 font-semibold">${subject}</td>
+                    <td class="py-2 px-4">${highestGrade !== 5.0 ? highestGrade.toFixed(2) : 'N/A'}</td>
+                    <td class="py-2 px-4">${lowestGrade !== 1.0 ? lowestGrade.toFixed(2) : 'N/A'}</td>
+                    <td class="py-2 px-4 font-bold">${average}</td>
+                    <td class="py-2 px-4">
+                        <button class="bg-indigo-500 text-white px-3 py-1 rounded-md text-sm hover:bg-indigo-600 transition duration-200 cursor-pointer" onclick="downloadSubjectReport('${subject}')">
+                            <i class="fas fa-download mr-1"></i> Download PDF
+                        </button>
+                    </td>
+                `;
+                statsBody.appendChild(row);
+            });
+        }
+
+        /**
+         * Generates a bar chart on a hidden canvas and returns its data URL.
+         * Made asynchronous to ensure chart rendering is complete before `toDataURL`.
+         * @param {string} subjectName - The subject name for the chart.
+         * @param {object} gradeDistribution - Object containing counts for each grade category.
+         * @returns {Promise<string>} A promise that resolves with the Data URL of the generated chart image.
+         */
+        function createOffscreenChart(subjectName, gradeDistribution) {
+            return new Promise((resolve, reject) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 500;
+                canvas.height = 300;
+                const ctx = canvas.getContext('2d');
+
+                if (!ctx) {
+                    console.error("Failed to get 2D context for offscreen canvas.");
+                    reject(new Error("Failed to get 2D context for offscreen canvas."));
+                    return;
+                }
+
+                const labels = ['Excellent (1.00-1.50)', 'Very Good (1.51-2.00)', 'Good (2.01-2.50)', 'Passed (2.51-3.00)', 'Failed (>3.00)', 'No Grade'];
+                const data = [
+                    gradeDistribution.excellent || 0,
+                    gradeDistribution.veryGood || 0,
+                    gradeDistribution.good || 0,
+                    gradeDistribution.passed || 0,
+                    gradeDistribution.failed || 0,
+                    gradeDistribution.noGrade || 0
+                ];
+
+                const backgroundColors = [
+                    'rgba(40, 167, 69, 0.7)',
+                    'rgba(23, 162, 184, 0.7)',
+                    'rgba(255, 193, 7, 0.7)',
+                    'rgba(0, 123, 255, 0.7)',
+                    'rgba(220, 53, 69, 0.7)',
+                    'rgba(150, 150, 150, 0.7)'
+                ];
+                const borderColors = [
+                    'rgba(40, 167, 69, 1)',
+                    'rgba(23, 162, 184, 1)',
+                    'rgba(255, 193, 7, 1)',
+                    'rgba(0, 123, 255, 1)',
+                    'rgba(220, 53, 69, 1)',
+                    'rgba(150, 150, 150, 1)'
+                ];
+
+                const chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Number of Students',
+                            data: data,
+                            backgroundColor: backgroundColors,
+                            borderColor: borderColors,
+                            borderWidth: 1,
+                            borderRadius: 5
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        maintainAspectRatio: false,
+                        animation: false, // Disable animations for faster, synchronous rendering
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `Grade Distribution for ${subjectName}`,
+                                font: {
+                                    size: 16,
+                                    weight: 'bold'
+                                },
+                                color: '#333'
+                            },
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Number of Students',
+                                    font: {
+                                        size: 12
+                                    },
+                                    color: '#4a5568'
+                                },
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Grade Category',
+                                    font: {
+                                        size: 12
+                                    },
+                                    color: '#4a5568'
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Use requestAnimationFrame to ensure the chart is fully drawn before getting data URL
+                requestAnimationFrame(() => {
+                    try {
+                        const dataUrl = canvas.toDataURL('image/png');
+                        chartInstance.destroy(); // Destroy the chart instance after getting the data URL
+                        resolve(dataUrl);
+                    } catch (e) {
+                        reject(new Error("Failed to convert canvas to data URL: " + e.message));
+                    }
+                });
+            });
+        }
+
+        /**
+         * Downloads a PDF report for a specific subject, including student grades and highlighting top students.
+         * @param {string} subjectName - The name of the subject for which to generate the report.
+         */
+        async function downloadSubjectReport(subjectName) { // Make it async
+            try {
+                const doc = new jsPDF();
+                let yPos = 20;
+                const pageHeight = doc.internal.pageSize.height;
+
+                // University Header
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(22);
+                doc.setTextColor(128, 0, 32); // Maroon color
+                doc.text('UNIVERSITY OF EXCELLENCE', 105, yPos, { align: 'center' });
+                yPos += 10;
+                doc.setFontSize(14);
+                doc.setTextColor(50, 50, 50);
+                doc.text('Subject Performance Report', 105, yPos, { align: 'center' });
+                yPos += 10;
+                doc.line(20, yPos, 190, yPos); // Horizontal line
+                yPos += 15;
+
+                doc.setFontSize(16);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`Subject: ${subjectName}`, 20, yPos);
+                yPos += 10;
+
+                // Calculate subject statistics and grade distribution
+                let highestGrade = 5.0;
+                let lowestGrade = 1.0;
+                let sum = 0;
+                let count = 0;
+                const studentGradesInSubject = []; // To store student details for the table
+                let excellentCount = 0, veryGoodCount = 0, goodCount = 0, passedCount = 0, failedCount = 0, noGradeCount = 0;
+
+                students.forEach(student => {
+                    ACADEMIC_YEARS.forEach(year => {
+                        SEMESTERS.forEach(semester => {
+                            const grade = parseFloat(student.grades?.[year]?.[semester]?.[subjectName]);
+                            if (!isNaN(grade)) {
+                                sum += grade;
+                                count++;
+                                if (grade < highestGrade) highestGrade = grade;
+                                if (grade > lowestGrade) lowestGrade = grade;
+
+                                let remarks = '';
+                                if (grade >= 1.00 && grade <= 1.50) { remarks = 'Excellent'; excellentCount++; }
+                                else if (grade > 1.50 && grade <= 2.00) { remarks = 'Very Good'; veryGoodCount++; }
+                                else if (grade > 2.00 && grade <= 2.50) { remarks = 'Good'; goodCount++; }
+                                else if (grade > 2.50 && grade <= 3.00) { remarks = 'Passed'; passedCount++; }
+                                else { remarks = 'Failed'; failedCount++; }
+
+                                studentGradesInSubject.push({
+                                    name: student.name,
+                                    grade: grade.toFixed(2),
+                                    remarks: remarks
+                                });
+                            } else {
+                                noGradeCount++;
+                            }
+                        });
+                    });
+                });
+
+                const average = count > 0 ? (sum / count).toFixed(2) : 'N/A';
+
+                // Display subject summary
+                doc.setFontSize(12);
+                doc.text(`Class Average: ${average}`, 20, yPos);
+                yPos += 7;
+                doc.text(`Highest Grade: ${highestGrade !== 5.0 ? highestGrade.toFixed(2) : 'N/A'}`, 20, yPos);
+                yPos += 7;
+                doc.text(`Lowest Grade: ${lowestGrade !== 1.0 ? lowestGrade.toFixed(2) : 'N/A'}`, 20, yPos);
+                yPos += 15;
+
+                // Grade Distribution Text Summary
+                doc.setFontSize(14);
+                doc.setTextColor(128, 0, 32);
+                doc.text('Grade Distribution Summary', 20, yPos);
+                yPos += 8;
+                doc.setFontSize(10);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`Excellent (1.00-1.50): ${excellentCount} students`, 25, yPos); yPos += 5;
+                doc.text(`Very Good (1.51-2.00): ${veryGoodCount} students`, 25, yPos); yPos += 5;
+                doc.text(`Good (2.01-2.50): ${goodCount} students`, 25, yPos); yPos += 5;
+                doc.text(`Passed (2.51-3.00): ${passedCount} students`, 25, yPos); yPos += 5;
+                doc.text(`Failed (>3.00): ${failedCount} students`, 25, yPos); yPos += 5;
+                doc.text(`No Grade Recorded: ${noGradeCount} students`, 25, yPos); yPos += 15;
+
+
+                // Add Chart - AWAIT the promise
+                const gradeDistributionData = { excellent: excellentCount, veryGood: veryGoodCount, good: goodCount, passed: passedCount, failed: failedCount, noGrade: noGradeCount };
+                const chartImage = await createOffscreenChart(subjectName, gradeDistributionData); // AWAIT HERE
+
+                if (!chartImage) {
+                    throw new Error("Chart image data could not be generated.");
+                }
+
+                const chartWidth = 150; // Width of the chart in the PDF
+                const chartHeight = 90; // Height of the chart in the PDF
+                const chartX = (doc.internal.pageSize.width - chartWidth) / 2; // Center the chart
+
+                if (yPos + chartHeight + 20 > pageHeight - 20) { // Check if new page is needed for chart
+                    doc.addPage();
+                    yPos = 20;
+                }
+                doc.addImage(chartImage, 'PNG', chartX, yPos, chartWidth, chartHeight);
+                yPos += chartHeight + 15; // Space after chart
+
+
+                // Sort students by grade for ranking and highlighting
+                studentGradesInSubject.sort((a, b) => parseFloat(a.grade) - parseFloat(b.grade));
+
+                // Prepare table data
+                const tableColumn = ["Rank", "Student Name", "Grade", "Remarks"];
+                const tableRows = studentGradesInSubject.map((student, index) => {
+                    let rank = index + 1;
+                    if (index > 0 && studentGradesInSubject[index].grade === studentGradesInSubject[index-1].grade) {
+                        // Keep the same rank if grades are tied
+                        rank = studentGradesInSubject[index-1].rank;
+                    } else {
+                        // Store rank for tied grades in the temporary array (not directly in student object)
+                        studentGradesInSubject[index].rank = rank;
+                    }
+                    return [
+                        `${rank}${getOrdinalSuffix(rank)}`,
+                        student.name,
+                        student.grade,
+                        student.remarks
+                    ];
+                });
+
+                if (yPos + 40 > pageHeight - 20) { // Check if new page is needed for table
+                    doc.addPage();
+                    yPos = 20;
+                }
+                doc.setFontSize(14);
+                doc.setTextColor(128, 0, 32); // Maroon
+                doc.text('Student Performance Details', 20, yPos);
+                yPos += 10;
+
+                doc.autoTable({
+                    head: [tableColumn],
+                    body: tableRows,
+                    startY: yPos,
+                    margin: { left: 20, right: 20 },
+                    headStyles: {
+                        fillColor: [128, 0, 32], // Maroon
+                        textColor: [255, 255, 255],
+                        fontStyle: 'bold',
+                        fontSize: 10
+                    },
+                    styles: {
+                        fontSize: 9,
+                        cellPadding: 3
+                    },
+                    didParseCell: function(data) {
+                        // Highlight top 3 rows (indices 0, 1, 2)
+                        if (data.row.index < 3) {
+                            data.cell.styles.fillColor = [255, 255, 224]; // Light yellow for highlight
+                        }
+                    },
+                    didDrawPage: function(data) {
+                        yPos = data.cursor.y + 10; // Update yPos after table
+                    }
+                });
+
+                doc.save(`${subjectName.replace(/\s/g, '_')}_Performance_Report.pdf`);
+                showToast(`Subject report for "${subjectName}" downloaded successfully.`);
+
+            } catch (error) {
+                console.error("Error generating subject report PDF:", error);
+                showToast('Failed to download subject report PDF. Please try again.', true);
+            }
+        }
+
+
+        /**
+         * Populates the admin dashboard's subject statistics table.
+         */
+        function populateSubjectStats() {
+            // Get all unique subjects across all years and semesters
+            const allSubjects = getAllSubjects();
+            const subjects = Array.from(allSubjects).sort(); // Sort subjects alphabetically
+
+            const statsBody = document.getElementById('subjectStatsBody');
+            statsBody.innerHTML = ''; // Clear previous entries
+
+            subjects.forEach(subject => {
+                let highestGrade = 5.0; // Lower grade number is better
+                let lowestGrade = 1.0;  // Higher grade number is worse
+                let sum = 0;
+                let count = 0;
+                let excellentCount = 0, veryGoodCount = 0, goodCount = 0, needsImprovementCount = 0;
+
+
+                students.forEach(student => {
+                    ACADEMIC_YEARS.forEach(year => {
+                        SEMESTERS.forEach(semester => {
+                            const grade = parseFloat(student.grades?.[year]?.[semester]?.[subject]);
+                            if (!isNaN(grade)) {
+                                sum += grade;
+                                count++;
+
+                                // Highest grade tracking (closest to 1.0)
+                                if (grade < highestGrade) {
+                                    highestGrade = grade;
+                                }
+
+                                // Lowest grade tracking (closest to 5.0)
+                                if (grade > lowestGrade) {
+                                    lowestGrade = grade;
+                                }
+
+                                // Grade distribution counts
+                                if (grade >= 1.00 && grade <= 1.50) excellentCount++;
+                                else if (grade > 1.50 && grade <= 2.00) veryGoodCount++;
+                                else if (grade > 2.00 && grade <= 2.50) goodCount++;
+                                else needsImprovementCount++;
+                            }
+                        });
+                    });
+                });
+
+                const average = count > 0 ? (sum / count).toFixed(2) : 'N/A';
+
+                const row = document.createElement('tr');
+                // Highlight if the class average for this subject is excellent (e.g., <= 1.5)
+                if (parseFloat(average) <= 1.5 && parseFloat(average) !== 0) row.classList.add('highlight'); // Exclude 0 average from highlight
+                row.innerHTML = `
+                    <td class="py-2 px-4 font-semibold">${subject}</td>
+                    <td class="py-2 px-4">${highestGrade !== 5.0 ? highestGrade.toFixed(2) : 'N/A'}</td>
+                    <td class="py-2 px-4">${lowestGrade !== 1.0 ? lowestGrade.toFixed(2) : 'N/A'}</td>
+                    <td class="py-2 px-4 font-bold">${average}</td>
+                    <td class="py-2 px-4">${excellentCount} / ${veryGoodCount} / ${goodCount} / ${needsImprovementCount}</td>
+                `;
+                statsBody.appendChild(row);
+            });
+        }
+
+        /**
+         * Renders the admin dashboard's overall class charts.
+         */
+        function renderAdminCharts() {
+            const ctx1 = document.getElementById('adminBarChart').getContext('2d');
+            const ctx2 = document.getElementById('adminPieChart').getContext('2d');
+
+            // Destroy previous charts if they exist
+            if (adminBarChart) adminBarChart.destroy();
+            if (adminPieChart) adminPieChart.destroy();
+
+            // Class Averages Chart (Bar)
+            const allSubjects = getAllSubjects();
+            const subjects = Array.from(allSubjects).sort(); // Sort subjects alphabetically
+
+            const averages = subjects.map(subject => {
+                let sum = 0;
+                let count = 0;
+                students.forEach(student => {
+                    ACADEMIC_YEARS.forEach(year => {
+                        SEMESTERS.forEach(semester => {
+                            const grade = parseFloat(student.grades?.[year]?.[semester]?.[subject]);
+                            if (!isNaN(grade)) {
+                                sum += grade;
+                                count++;
+                            }
+                        });
+                    });
+                });
+                return count > 0 ? (sum / count).toFixed(2) : 0; // Return 0 if no students have this subject, or no grades
+            });
+
+            adminBarChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: subjects,
+                    datasets: [{
+                        label: 'Class Average',
+                        data: averages.map(Number), // Ensure data is numbers
+                        backgroundColor: 'rgba(128, 0, 32, 0.8)', /* Maroon */
+                        borderColor: 'rgba(128, 0, 32, 1)',
+                        borderWidth: 1,
+                        borderRadius: 5,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 1,
+                            max: 5,
+                            reverse: true, // Lower grade number is better
+                            title: {
+                                display: true,
+                                text: 'Average Grade Value (Lower is Better)',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                color: '#4a5568'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 12
+                                },
+                                color: '#4a5568'
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Subject',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                color: '#4a5568'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 12
+                                },
+                                color: '#4a5568'
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Average: ${context.raw.toFixed(2)}`;
+                                }
+                            },
+                            backgroundColor: 'rgba(0,0,0,0.7)',
+                            bodyFont: {
+                                size: 14
+                            },
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            padding: 10,
+                            boxPadding: 5,
+                            displayColors: false
+                        }
+                    }
+                }
+            });
+
+            // Honors Distribution Chart (Pie)
+            const honorsCount = {
+                "Summa Cum Laude": students.filter(s => s.remarks === "Summa Cum Laude").length,
+                "Magna Cum Laude": students.filter(s => s.remarks === "Magna Cum Laude").length,
+                "Cum Laude": students.filter(s => s.remarks === "Cum Laude").length,
+                "President's Lister": students.filter(s => s.remarks === "President's Lister").length,
+                "Dean's Lister": students.filter(s => s.remarks === "Dean's Lister").length,
+                "Passed": students.filter(s => s.remarks === "Passed").length,
+                "Failed": students.filter(s => s.remarks === "Failed").length,
+                "N/A": students.filter(s => s.remarks === "N/A" || !s.remarks).length
+            };
+
+            // Filter out categories with 0 students for cleaner chart
+            const activeHonors = Object.keys(honorsCount).filter(key => honorsCount[key] > 0);
+            const activeHonorsData = activeHonors.map(key => honorsCount[key]);
+            const backgroundColors = activeHonors.map(key => {
+                switch(key) {
+                    case "Summa Cum Laude": return 'rgba(255, 215, 0, 0.7)'; // Gold
+                    case "Magna Cum Laude": return 'rgba(192, 192, 192, 0.7)'; // Silver
+                    case "Cum Laude": return 'rgba(205, 127, 50, 0.7)'; // Bronze
+                    case "President's Lister": return 'rgba(75, 192, 192, 0.7)'; // Teal
+                    case "Dean's Lister": return 'rgba(153, 102, 255, 0.7)'; // Purple
+                    case "Passed": return 'rgba(40, 167, 69, 0.7)'; // Green
+                    case "Failed": return 'rgba(220, 53, 69, 0.7)'; // Red
+                    default: return 'rgba(150, 150, 150, 0.7)'; // Grey for N/A
+                }
+            });
+            const borderColors = activeHonors.map(key => {
+                switch(key) {
+                    case "Summa Cum Laude": return 'rgba(255, 215, 0, 1)';
+                    case "Magna Cum Laude": return 'rgba(192, 192, 192, 1)';
+                    case "Cum Laude": return 'rgba(205, 127, 50, 1)';
+                    case "President's Lister": return 'rgba(75, 192, 192, 1)';
+                    case "Dean's Lister": return 'rgba(153, 102, 255, 1)';
+                    case "Passed": return 'rgba(40, 167, 69, 1)';
+                    case "Failed": return 'rgba(220, 53, 69, 1)';
+                    default: return 'rgba(150, 150, 150, 1)';
+                }
+            });
+
+
+            adminPieChart = new Chart(ctx2, {
+                type: 'pie',
+                data: {
+                    labels: activeHonors,
+                    datasets: [{
+                        data: activeHonorsData,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                font: {
+                                    size: 12
+                                },
+                                color: '#333'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((acc, data) => acc + data, 0);
+                                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                    return `${label}: ${value} students (${percentage}%)`;
+                                }
+                            },
+                            backgroundColor: 'rgba(0,0,0,0.7)',
+                            bodyFont: {
+                                size: 14
+                            },
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            padding: 10,
+                            boxPadding: 5,
+                            displayColors: true
+                        }
+                    }
+                }
+            });
+        }
+
+        /**
+         * Determines the academic honor based on the General Weighted Average (GWA).
+         * @param {number} gwa - The General Weighted Average.
+         * @returns {string} The academic honor string.
+         */
+        function getAcademicHonor(gwa) {
+            if (isNaN(gwa)) {
+                return "N/A";
+            }
+            if (gwa >= 1.00 && gwa <= 1.10) {
+                return "Summa Cum Laude";
+            } else if (gwa >= 1.11 && gwa <= 1.20) {
+                return "Magna Cum Laude";
+            } else if (gwa >= 1.21 && gwa <= 1.30) {
+                return "Cum Laude";
+            } else if (gwa >= 1.31 && gwa <= 1.35) {
+                return "President's Lister";
+            } else if (gwa >= 1.36 && gwa <= 1.40) {
+                return "Dean's Lister";
+            } else if (gwa >= 1.41 && gwa <= 2.00) {
+                return "Passed";
+            } else if (gwa >= 2.01 && gwa <= 3.00) { // Assuming 3.00 is the max failed grade
+                return "Failed";
+            } else {
+                return "N/A"; // For grades outside the defined 1.00-3.00 range
+            }
+        }
+
+        /**
+         * Recalculates average and remarks for a single student by iterating through all nested grades.
+         * @param {object} student - The student object to update.
+         */
+        function recalculateStudentAverageAndRemarks(student) {
+            let allGrades = [];
+            ACADEMIC_YEARS.forEach(year => {
+                SEMESTERS.forEach(semester => {
+                    const gradesInSemester = student.grades[year]?.[semester];
+                    if (gradesInSemester) {
+                        for (const grade of Object.values(gradesInSemester)) {
+                            const gradeNum = parseFloat(grade);
+                            if (!isNaN(gradeNum)) {
+                                allGrades.push(gradeNum);
+                            }
+                        }
+                    }
+                });
+            });
+
+            if (allGrades.length === 0) {
+                student.average = "N/A";
+                student.remarks = "N/A"; // No grades, so no honor
+                return;
+            }
+            const sum = allGrades.reduce((acc, g) => acc + g, 0);
+            const average = (sum / allGrades.length).toFixed(2);
+            student.average = average;
+            
+            // Determine academic honor based on the new criteria
+            student.remarks = getAcademicHonor(parseFloat(average));
+        }
+
+        /**
+         * Recalculates ranks and remarks for all students.
+         * This should be called after any student data modification.
+         */
+        function recalculateAllStudentRanksAndRemarks() {
+            // First, recalculate average and remarks for all students
+            students.forEach(recalculateStudentAverageAndRemarks);
+
+            // Then, sort and assign ranks
+            students.sort((a, b) => {
+                const avgA = parseFloat(a.average);
+                const avgB = parseFloat(b.average);
+                if (isNaN(avgA) && isNaN(avgB)) return 0; // Treat N/A as equal for sorting purposes
+                if (isNaN(avgA)) return 1; // N/A averages go to the end
+                if (isNaN(avgB)) return -1;
+                return avgA - avgB; // Lower average is better
+            });
+
+            let currentRank = 1;
+            for (let i = 0; i < students.length; i++) {
+                // If current student's average is different from the previous one, update rank
+                if (i > 0 && students[i].average !== students[i - 1].average) {
+                    currentRank = i + 1;
+                }
+                students[i].rank = currentRank.toString();
+            }
+        }
+
+        /**
+         * Gets all unique subjects across all students, years, and semesters.
+         * @returns {string[]} An array of unique subject names.
+         */
+        function getAllSubjects() {
+            const allSubjects = new Set();
+            students.forEach(student => {
+                ACADEMIC_YEARS.forEach(year => {
+                    SEMESTERS.forEach(semester => {
+                        const gradesInSemester = student.grades[year]?.[semester];
+                        if (gradesInSemester) {
+                            Object.keys(gradesInSemester).forEach(subject => allSubjects.add(subject));
+                        }
+                    });
+                });
+            });
+            return Array.from(allSubjects).sort();
+        }
+
+        /**
+         * Shows the modal for adding a new student.
+         * Dynamically populates subject grade inputs based on existing subjects for all years/semesters.
+         */
+        function showAddStudentModal() {
+            // Clear any existing values
+            document.getElementById('newStudentName').value = '';
+            document.getElementById('newStudentId').value = '';
+            document.getElementById('newStudentEmail').value = '';
+            document.getElementById('newStudentContact').value = '';
+
+            const newStudentGradesInput = document.getElementById('newStudentGradesInput');
+            newStudentGradesInput.innerHTML = ''; // Clear previous subject inputs
+
+            const allSubjects = getAllSubjects();
+
+            if (allSubjects.length === 0) {
+                 newStudentGradesInput.innerHTML = `<p class="text-gray-500">No subjects defined yet. Add a course first!</p>`;
+                 return;
+            }
+
+            ACADEMIC_YEARS.forEach(year => {
+                const yearHeader = document.createElement('h4');
+                yearHeader.classList.add('text-md', 'font-semibold', 'text-gray-700', 'mt-4', 'mb-2');
+                yearHeader.textContent = year;
+                newStudentGradesInput.appendChild(yearHeader);
+
+                SEMESTERS.forEach(semester => {
+                    const semHeader = document.createElement('h5');
+                    semHeader.classList.add('text-base', 'font-medium', 'text-gray-600', 'mb-1');
+                    semHeader.textContent = semester;
+                    newStudentGradesInput.appendChild(semHeader);
+
+                    const semesterInputsDiv = document.createElement('div');
+                    semesterInputsDiv.classList.add('grid', 'grid-cols-1', 'md:grid-cols-2', 'lg:grid-cols-3', 'gap-4', 'mb-4');
+
+                    allSubjects.sort().forEach(subject => {
+                        const div = document.createElement('div');
+                        div.innerHTML = `
+                            <label for="newGrade-${year.replace(/\s/g, '-')}-${semester.replace(/\s/g, '-')}-${subject.replace(/\s/g, '-')}" class="block text-gray-700 text-sm font-semibold mb-1">${subject}</label>
+                            <input type="number" step="0.01" min="1" max="5" id="newGrade-${year.replace(/\s/g, '-')}-${semester.replace(/\s/g, '-')}-${subject.replace(/\s/g, '-')}" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500" value="3.00">
+                        `;
+                        semesterInputsDiv.appendChild(div);
+                    });
+                    newStudentGradesInput.appendChild(semesterInputsDiv);
+                });
+            });
+
+            showModal('addStudentModal');
+        }
+
+        /**
+         * Adds a new student to the data array after validation.
+         */
+        function addNewStudent() {
+            const name = document.getElementById('newStudentName').value.trim();
+            const id = document.getElementById('newStudentId').value.trim();
+            const email = document.getElementById('newStudentEmail').value.trim();
+            const contact = document.getElementById('newStudentContact').value.trim();
+
+            // Validate inputs
+            if (!name || !id || !email) {
+                showToast('Please fill in all required student information fields (Name, ID, Email).', true);
+                return;
+            }
+
+            if (id.length !== 13 || isNaN(id)) {
+                showToast('Student ID must be exactly 13 digits.', true);
+                return;
+            }
+
+            if (students.some(s => s.id === id)) {
+                showToast('Student ID already exists. Please use a unique ID.', true);
+                return;
+            }
+
+            const newStudentGrades = {};
+            let allGradesValid = true;
+            let collectedGradesArray = []; // To calculate overall average for the new student
+
+            ACADEMIC_YEARS.forEach(year => {
+                newStudentGrades[year] = {};
+                SEMESTERS.forEach(semester => {
+                    newStudentGrades[year][semester] = {};
+                    const allSubjects = getAllSubjects(); // Get all subjects to ensure all are accounted for
+
+                    allSubjects.forEach(subject => {
+                        const inputId = `newGrade-${year.replace(/\s/g, '-')}-${semester.replace(/\s/g, '-')}-${subject.replace(/\s/g, '-')}`;
+                        const inputElement = document.getElementById(inputId);
+
+                        if (inputElement) {
+                            const gradeValue = inputElement.value.trim();
+                            if (gradeValue !== '') { // Only add if a grade is provided
+                                const gradeNum = parseFloat(gradeValue);
+                                if (isNaN(gradeNum) || gradeNum < 1 || gradeNum > 5) {
+                                    showToast(`Invalid grade for ${subject} in ${year} ${semester}. Must be between 1.00 and 5.00.`, true);
+                                    allGradesValid = false;
+                                    return; // Exit inner loop
+                                }
+                                newStudentGrades[year][semester][subject] = gradeNum.toFixed(2);
+                                collectedGradesArray.push(gradeNum);
+                            }
+                        }
+                    });
+                });
+                if (!allGradesValid) return; // Exit outer loop if any grade is invalid
+            });
+
+            if (!allGradesValid) return;
+
+            // Calculate overall average for the new student
+            const average = collectedGradesArray.length > 0 ? (collectedGradesArray.reduce((sum, g) => sum + g, 0) / collectedGradesArray.length).toFixed(2) : "N/A";
+
+            // Determine honors using the new function
+            const remarks = getAcademicHonor(parseFloat(average));
+
+            // Create new student object
+            const newStudent = {
+                name: name.toUpperCase(), // Standardize name format
+                id: id,
+                average: average,
+                rank: "", // Will be calculated after adding and sorting
+                remarks: remarks,
+                email: email,
+                contact: contact,
+                grades: newStudentGrades
+            };
+
+            // Add to students array
+            students.push(newStudent);
+
+            // Recalculate ranks for all students
+            recalculateAllStudentRanksAndRemarks();
+
+            // Refresh admin views
+            populateAdminStudents();
+            populateSubjectStats();
+            renderAdminCharts();
+            populateTeacherStudents(); // Also update teacher's view
+            populateTeacherSubjectStats(); // Also update teacher subject stats
+
+            // Hide modal and show success message
+            hideModal('addStudentModal');
+            showToast('New student added successfully.');
+        }
+
+        /**
+         * Shows the student profile modal and prepares it for viewing/editing.
+         */
+        function showStudentProfileModal() {
+            const studentId = document.getElementById('studentId').textContent;
+            const student = students.find(s => s.id === studentId);
+            if (!student) {
+                showToast('Student data not found.', true);
+                return;
+            }
+
+            // Populate current data
+            document.getElementById('modalStudentName').textContent = student.name;
+            document.getElementById('modalStudentId').textContent = student.id;
+            document.getElementById('displayStudentEmail').textContent = student.email;
+            document.getElementById('displayStudentContact').textContent = student.contact || 'N/A';
+            document.getElementById('modalStudentAverage').textContent = student.average;
+            document.getElementById('modalStudentRank').textContent = student.rank;
+            document.getElementById('modalStudentRemarks').textContent = student.remarks || 'None';
+
+            // Set input values for editing
+            document.getElementById('editStudentEmail').value = student.email;
+            document.getElementById('editStudentContact').value = student.contact || '';
+
+            // Hide inputs and show display spans initially
+            document.getElementById('displayStudentEmail').classList.remove('hidden');
+            document.getElementById('editStudentEmail').classList.add('hidden');
+            document.getElementById('displayStudentContact').classList.remove('hidden');
+            document.getElementById('editStudentContact').classList.add('hidden');
+            document.getElementById('editProfileBtn').classList.remove('hidden');
+            document.getElementById('saveProfileBtn').classList.add('hidden');
+
+            showModal('profileModal');
+        }
+
+        /**
+         * Toggles the student profile modal between display and edit modes.
+         */
+        function editStudentProfile() {
+            document.getElementById('displayStudentEmail').classList.add('hidden');
+            document.getElementById('editStudentEmail').classList.remove('hidden');
+            document.getElementById('displayStudentContact').classList.add('hidden');
+            document.getElementById('editStudentContact').classList.remove('hidden');
+            document.getElementById('editProfileBtn').classList.add('hidden');
+            document.getElementById('saveProfileBtn').classList.remove('hidden');
+        }
+
+        /**
+         * Saves the changes made to the student's profile from the student dashboard.
+         */
+        function saveStudentProfile() {
+            const studentId = document.getElementById('studentId').textContent;
+            const student = students.find(s => s.id === studentId);
+            if (!student) {
+                showToast('Student data not found.', true);
+                return;
+            }
+
+            const newEmail = document.getElementById('editStudentEmail').value.trim();
+            const newContact = document.getElementById('editStudentContact').value.trim();
+
+            // Basic validation
+            if (!newEmail) {
+                showToast('Email cannot be empty.', true);
+                return;
+            }
+            if (!/\S+@\S+\.\S+/.test(newEmail)) {
+                showToast('Please enter a valid email address.', true);
+                return;
+            }
+
+            student.email = newEmail;
+            student.contact = newContact;
+
+            // Re-populate dashboard to reflect changes
+            populateStudentDashboard(student);
+            // Also update admin and teacher views
+            populateAdminStudents();
+            populateTeacherStudents();
+
+            hideModal('profileModal');
+            showToast('Profile updated successfully!');
+        }
+
+        /**
+         * Shows the student profile modal in read-only mode for teachers.
+         * @param {string} studentId - The ID of the student to view.
+         */
+        function showViewStudentProfileTeacherModal(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (!student) {
+                showToast('Student data not found.', true);
+                return;
+            }
+
+            document.getElementById('viewTeacherStudentName').textContent = student.name;
+            document.getElementById('viewTeacherStudentId').textContent = student.id;
+            document.getElementById('viewTeacherStudentEmail').textContent = student.email;
+            document.getElementById('viewTeacherStudentContact').textContent = student.contact || 'N/A';
+            document.getElementById('viewTeacherStudentAverage').textContent = student.average;
+            document.getElementById('viewTeacherStudentRank').textContent = student.rank;
+            document.getElementById('viewTeacherStudentRemarks').textContent = student.remarks || 'None';
+
+            showModal('viewStudentProfileTeacherModal');
+        }
+
+
+        /**
+         * Shows the modal for adding a new course.
+         */
+        function showAddCourseModal() {
+            document.getElementById('newCourseName').value = '';
+            document.getElementById('newCourseCode').value = '';
+            document.getElementById('defaultNewCourseGrade').value = '3.00';
+            showModal('addCourseModal');
+        }
+
+        /**
+         * Adds a new course to all students and updates all views.
+         */
+        function addNewCourse() {
+            const courseName = document.getElementById('newCourseName').value.trim();
+            const courseCode = document.getElementById('newCourseCode').value.trim();
+            const defaultGrade = parseFloat(document.getElementById('defaultNewCourseGrade').value);
+
+            if (!courseName || !courseCode) {
+                showToast('Course name and code cannot be empty.', true);
+                return;
+            }
+            if (isNaN(defaultGrade) || defaultGrade < 1 || defaultGrade > 5) {
+                showToast('Default grade must be between 1.00 and 5.00.', true);
+                return;
+            }
+
+            const fullCourseName = `${courseName} ${courseCode}`;
+
+            // Check if course already exists (case-insensitive across all student's subjects in any semester/year)
+            let courseExists = false;
+            for (const student of students) {
+                for (const year of ACADEMIC_YEARS) {
+                    for (const semester of SEMESTERS) {
+                        const gradesInSemester = student.grades[year]?.[semester];
+                        if (gradesInSemester && Object.keys(gradesInSemester).some(subject => subject.toLowerCase() === fullCourseName.toLowerCase() || subject.toLowerCase() === courseName.toLowerCase())) {
+                            courseExists = true;
+                            break;
+                        }
+                    }
+                    if (courseExists) break;
+                }
+                if (courseExists) break;
+            }
+
+            if (courseExists) {
+                showToast('A course with this name or code already exists.', true);
+                return;
+            }
+
+            // Add the new course to all existing students for all semesters
+            students.forEach(student => {
+                ACADEMIC_YEARS.forEach(year => {
+                    if (!student.grades[year]) {
+                        student.grades[year] = {}; // Ensure year object exists
+                    }
+                    SEMESTERS.forEach(semester => {
+                        if (!student.grades[year][semester]) {
+                            student.grades[year][semester] = {}; // Ensure semester object exists
+                        }
+                        student.grades[year][semester][fullCourseName] = defaultGrade.toFixed(2);
+                    });
+                });
+                recalculateStudentAverageAndRemarks(student); // Recalculate average and remarks for each student
+            });
+
+            recalculateAllStudentRanksAndRemarks(); // Re-rank all students
+
+            // Refresh all admin and teacher views
+            populateAdminStudents();
+            populateSubjectStats();
+            renderAdminCharts();
+            populateTeacherStudents();
+            populateTeacherSubjectStats();
+
+            hideModal('addCourseModal');
+            showToast(`New course "${fullCourseName}" added successfully!`);
+        }
+
+        /**
+         * Refreshes all data displays in the admin and teacher dashboards.
+         */
+        function refreshData() {
+            recalculateAllStudentRanksAndRemarks(); // Ensure data is up-to-date
+            populateAdminStudents();
+            populateSubjectStats();
+            renderAdminCharts();
+            populateTeacherStudents(); // Refresh teacher's student list
+            populateTeacherSubjectStats(); // Refresh teacher subject stats
+            showToast('Data refreshed.');
+        }
+
+        /**
+         * Switches the active view in the student dashboard.
+         * @param {string} viewId - The ID of the section to show (e.g., 'studentOverview', 'studentGrades').
+         */
+        function switchStudentView(viewId) {
+            // Hide all student views
+            document.querySelectorAll('.student-view').forEach(view => {
+                view.classList.add('hidden');
+            });
+            // Show the selected view
+            document.getElementById(viewId).classList.remove('hidden');
+
+            // Update active link in sidebar
+            document.querySelectorAll('.sidebar-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            // Ensure the clicked link gets the active class
+            // Find the parent <li> of the clicked <a> and add 'active'
+            const clickedLink = event.currentTarget;
+            if (clickedLink) {
+                clickedLink.classList.add('active');
+            }
+
+            // If switching to student grades, ensure tabs are populated
+            if (viewId === 'studentGrades' && currentStudentLoggedIn) {
+                populateStudentGradesTabs(currentStudentLoggedIn);
+            }
+        }
+
+        /**
+         * Switches the active view in the admin dashboard.
+         * @param {string} viewId - The ID of the section to show (e.g., 'adminStudents', 'adminSubjectStats').
+         */
+        function switchAdminView(viewId) {
+            // Hide all admin views
+            document.querySelectorAll('.admin-view').forEach(view => {
+                view.classList.add('hidden');
+            });
+            // Show the selected view
+            document.getElementById(viewId).classList.remove('hidden');
+
+            // Update active link in sidebar
+            document.querySelectorAll('.admin-sidebar-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            // Ensure the clicked link gets the active class
+            const clickedLink = event.currentTarget;
+            if (clickedLink) {
+                clickedLink.classList.add('active');
+            }
+        }
+
+        /**
+         * Switches the active view in the teacher dashboard.
+         * @param {string} viewId - The ID of the section to show (e.g., 'teacherStudents').
+         */
+        function switchTeacherView(viewId) {
+            // Hide all teacher views
+            document.querySelectorAll('.teacher-view').forEach(view => {
+                view.classList.add('hidden');
+            });
+            // Show the selected view
+            document.getElementById(viewId).classList.remove('hidden');
+
+            // Update active link in sidebar
+            document.querySelectorAll('.teacher-sidebar-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            // Ensure the clicked link gets the active class
+            const clickedLink = event.currentTarget;
+            if (clickedLink) {
+                clickedLink.classList.add('active');
+            }
+        }
+
+        // Initial setup when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Ensure login page is visible initially
+            document.getElementById('loginPage').style.display = 'flex';
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('adminDashboard').style.display = 'none';
+            document.getElementById('teacherDashboard').style.display = 'none'; // Hide teacher dashboard initially
+
+            // Recalculate ranks and remarks initially to ensure consistency
+            recalculateAllStudentRanksAndRemarks();
+        });
+    </script>
+</body>
+</html>

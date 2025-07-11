@@ -1,0 +1,2446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Starlight Stage - Singing Contest Portal</title>
+
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts: Bebas Neue for headings, Inter for body -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- jsPDF for certificate generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        /* Custom styles to apply the theme and fonts */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a1a;
+        }
+        h1, h2, h3, h4, .font-heading {
+            font-family: 'Bebas Neue', cursive;
+        }
+
+        /* Gold theme elements */
+        .theme-gold { color: #FFD700; }
+        .bg-theme-gold { background-color: #FFD700; }
+        .border-theme-gold { border-color: #FFD700; }
+        .hover-bg-theme-gold-dark:hover { background-color: #cca300; }
+
+        /* Glassmorphism effect for cards */
+        .glass-card {
+            background: rgba(41, 41, 41, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #2a2a2a; }
+        ::-webkit-scrollbar-thumb { background: #FFD700; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #cca300; }
+        
+        /* Hide elements by default */
+        .page { display: none; }
+    </style>
+</head>
+<body class="text-white">
+
+    <!-- Main Application Container -->
+    <div id="app" class="min-h-screen w-full bg-black">
+        <div class="min-h-screen w-full bg-black bg-opacity-70 backdrop-blur-sm">
+
+            <!-- Loading Spinner Overlay -->
+            <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-70 z-50 flex-col items-center justify-center hidden">
+                <div class="w-16 h-16 border-4 border-t-transparent border-theme-gold rounded-full animate-spin"></div>
+                <p class="mt-4 text-lg font-heading tracking-wider theme-gold">Loading...</p>
+            </div>
+
+            <!-- Toast Notification -->
+            <div id="toast-notification" class="fixed top-5 right-5 bg-green-500 text-white py-2 px-5 rounded-lg shadow-lg transform translate-x-[120%] transition-transform duration-500 z-50">
+                <p id="toast-message">Success!</p>
+            </div>
+
+            <!-- Header -->
+            <header id="app-header" class="p-4 border-b border-yellow-500/30 hidden">
+                <div class="container mx-auto flex justify-between items-center">
+                    <h1 class="text-3xl font-heading tracking-widest theme-gold">Starlight Stage</h1>
+                    <div class="flex items-center space-x-4">
+                        <p class="text-sm">Welcome, <span id="user-name-display" class="font-bold theme-gold"></span> (<span id="user-role-display" class="capitalize"></span>)</p>
+                        <button id="logout-button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300">Logout</button>
+                    </div>
+                </div>
+            </header>
+
+            <main id="main-content" class="container mx-auto p-4 md:p-8">
+                <!-- Login/Registration Page -->
+                <div id="login-page" class="page max-w-md mx-auto mt-20">
+                    <div class="glass-card p-8 rounded-xl shadow-2xl">
+                        <div class="text-center mb-8">
+                            <h2 class="text-5xl font-heading tracking-wider theme-gold">Portal Login</h2>
+                            <p class="text-gray-400 mt-2">Access your dashboard</p>
+                        </div>
+                        <form id="login-form" class="space-y-6">
+                            <div>
+                                <label for="userId" class="block text-sm font-medium text-gray-300">Your User ID / 4-Digit PIN</label>
+                                <input type="text" id="userId" placeholder="Enter your User ID or 4-digit PIN" class="mt-1 block w-full bg-gray-800 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-yellow-500 focus:border-yellow-500">
+                            </div>
+                            <div>
+                                <label for="name" class="block text-sm font-medium text-gray-300">Full Name</label>
+                                <input type="text" id="name" required class="mt-1 block w-full bg-gray-800 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-yellow-500 focus:border-yellow-500">
+                            </div>
+                            <div>
+                                <label for="role" class="block text-sm font-medium text-gray-300">Select Your Role</label>
+                                <select id="role" required class="mt-1 block w-full bg-gray-800 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-yellow-500 focus:border-yellow-500">
+                                    <option value="talent">Talent / Contestant</option>
+                                    <option value="judge">Judge</option>
+                                    <option value="audience">Audience</option>
+                                    <option value="organizer">Organizer</option>
+                                    <option value="public">Public Viewer</option> <!-- New Role -->
+                                </select>
+                            </div>
+                            <div>
+                                <button type="submit" class="w-full bg-theme-gold hover-bg-theme-gold-dark text-black font-bold py-3 px-4 rounded-md transition-colors duration-300 text-lg font-heading tracking-wider">Enter Portal</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Organizer Dashboard -->
+                <div id="organizer-dashboard" class="page space-y-8">
+                    <h2 class="text-4xl font-heading tracking-wider theme-gold text-center">Organizer Dashboard</h2>
+                    <div id="organizer-competition-status" class="glass-card p-6 rounded-lg text-center text-xl font-bold text-green-500 hidden">
+                        Competition Status: <span class="theme-gold">ONGOING</span>
+                    </div>
+                    <div id="organizer-competition-ended-message" class="glass-card p-6 rounded-lg text-center text-xl font-bold text-red-500 hidden">
+                        Competition Status: <span class="theme-gold">ENDED</span>. Final Rankings are displayed below.
+                        <button id="reset-competition-btn" class="bg-red-800 hover:bg-red-900 text-white font-bold py-2 px-4 rounded-md transition mt-4">Reset Competition (DEBUG)</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Contest Rounds Management -->
+                        <div id="rounds-management-section" class="lg:col-span-1 glass-card p-6 rounded-lg">
+                            <h3 class="text-2xl font-heading theme-gold border-b border-yellow-500/30 pb-2 mb-4">Contest Rounds</h3>
+                            <form id="round-form" class="space-y-4 mb-4">
+                                <div class="flex space-x-2">
+                                    <input type="text" id="new-round-name" placeholder="New Round Name (e.g., Semi-Finals)" class="flex-grow bg-gray-700 border border-gray-600 rounded-md py-1 px-2 text-white focus:outline-none focus:ring-yellow-500 focus:border-yellow-500" required>
+                                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded-md transition">Add Round</button>
+                                </div>
+                            </form>
+                            <div id="rounds-list" class="space-y-2">
+                                <!-- Rounds will be injected here -->
+                            </div>
+                            <p class="text-xs text-gray-400 mt-2">Active round determines visible talents & scoring period.</p>
+                            <button id="end-competition-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition mt-4 w-full">End Competition</button>
+                        </div>
+
+                        <!-- Judge Assignment -->
+                        <div id="judge-assignment-section" class="lg:col-span-1 glass-card p-6 rounded-lg">
+                            <h3 class="text-2xl font-heading theme-gold border-b border-yellow-500/30 pb-2 mb-4">Judge Assignments</h3>
+                            <div id="judge-assignments-content">
+                                <p class="text-gray-400">Loading assignments...</p>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-2">Assign talents to judges per round.</p>
+                        </div>
+
+                        <!-- Performance Slots & Scheduling -->
+                        <div id="performance-slots-section" class="lg:col-span-1 glass-card p-6 rounded-lg">
+                            <h3 class="text-2xl font-heading theme-gold border-b border-yellow-500/30 pb-2 mb-4">Performance Slots (Active Round: <span id="slots-active-round-name" class="font-bold"></span>)</h3>
+                            <form id="slot-form" class="space-y-4 mb-4">
+                                <div class="flex space-x-2">
+                                    <input type="time" id="new-slot-time" class="flex-grow bg-gray-700 border border-gray-600 rounded-md py-1 px-2 text-white focus:outline-none focus:ring-yellow-500 focus:border-yellow-500" required>
+                                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded-md transition">Add Slot</button>
+                                </div>
+                            </form>
+                            <div id="slots-list" class="space-y-2">
+                                <!-- Slots will be injected here -->
+                            </div>
+                            <p class="text-xs text-gray-400 mt-2">Assign talents to specific performance times.</p>
+                        </div>
+
+                        <!-- Criteria Management -->
+                        <div id="criteria-management-section" class="lg:col-span-1 glass-card p-6 rounded-lg">
+                            <h3 class="text-2xl font-heading theme-gold border-b border-yellow-500/30 pb-2 mb-4">Judging Criteria</h3>
+                            <form id="criteria-form" class="space-y-4">
+                                <div id="criteria-list" class="space-y-2"></div>
+                                <button type="button" id="add-criterion-btn" class="w-full border-2 border-dashed border-yellow-500/50 text-yellow-500 hover:bg-yellow-500/10 py-2 rounded-md transition">Add Criterion</button>
+                                <button type="submit" class="w-full bg-theme-gold hover-bg-theme-gold-dark text-black font-bold py-2 px-4 rounded-md transition">Save Criteria</button>
+                            </form>
+                            <p class="text-xs text-gray-400 mt-2">Note: Total weight must equal 100.</p>
+                        </div>
+                        <!-- Audience Voting Settings -->
+                        <div id="audience-voting-settings-section" class="lg:col-span-1 glass-card p-6 rounded-lg">
+                            <h3 class="text-2xl font-heading theme-gold border-b border-yellow-500/30 pb-2 mb-4">Audience Voting Settings</h3>
+                            <div class="flex items-center justify-between mb-4">
+                                <label for="audience-voting-toggle" class="text-gray-300">Enable Audience Voting</label>
+                                <input type="checkbox" id="audience-voting-toggle" class="form-checkbox h-5 w-5 text-theme-gold rounded focus:ring-yellow-500">
+                            </div>
+                            <div id="audience-criteria-section" class="space-y-4 hidden">
+                                <h4 class="text-xl font-heading theme-gold border-b border-yellow-500/30 pb-2 mb-2">Audience Criteria</h4>
+                                <form id="audience-criteria-form" class="space-y-4">
+                                    <div id="audience-criteria-list" class="space-y-2"></div>
+                                    <button type="button" id="add-audience-criterion-btn" class="w-full border-2 border-dashed border-yellow-500/50 text-yellow-500 hover:bg-yellow-500/10 py-2 rounded-md transition">Add Audience Criterion</button>
+                                    <button type="submit" class="w-full bg-theme-gold hover-bg-theme-gold-dark text-black font-bold py-2 px-4 rounded-md transition">Save Audience Criteria</button>
+                                </form>
+                                <p class="text-xs text-gray-400 mt-2">Note: Total weight must equal 100 for audience criteria.</p>
+                            </div>
+                        </div>
+                        <!-- Announcements -->
+                        <div id="announcements-section" class="lg:col-span-1 glass-card p-6 rounded-lg">
+                            <h3 class="text-2xl font-heading theme-gold border-b border-yellow-500/30 pb-2 mb-4">Post Announcement</h3>
+                            <form id="announcement-form" class="space-y-4">
+                                <textarea id="announcement-text" rows="3" class="w-full bg-gray-800 border border-gray-600 rounded-md text-white p-2 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500" placeholder="E.g., The contest will begin in 15 minutes."></textarea>
+                                <button type="submit" class="w-full bg-theme-gold hover-bg-theme-gold-dark text-black font-bold py-2 px-4 rounded-md transition">Post Announcement</button>
+                            </form>
+                            <div id="latest-announcement" class="mt-4"></div>
+                        </div>
+                        <!-- Registered Talents -->
+                        <div id="registered-talents-section" class="lg:col-span-3 glass-card p-6 rounded-lg">
+                            <h3 class="text-2xl font-heading theme-gold border-b border-yellow-500/30 pb-2 mb-4">Registered Talents</h3>
+                            <div id="organizer-talent-list" class="overflow-x-auto"></div>
+                        </div>
+                        <!-- Rankings -->
+                        <div id="rankings-section" class="lg:col-span-3 glass-card p-6 rounded-lg">
+                               <div class="flex justify-between items-center flex-wrap gap-4">
+                                 <h3 class="text-2xl font-heading theme-gold pb-2">Rankings & Results</h3>
+                                 <button id="reveal-results-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition">Reveal Results to Talents</button>
+                            </div>
+                            <div id="rankings-table" class="overflow-x-auto mt-4"></div>
+                        </div>
+                        <!-- Wildcard Battle Management -->
+                        <div id="wildcard-management-section" class="lg:col-span-3 glass-card p-6 rounded-lg">
+                            <h3 class="text-2xl font-heading theme-gold border-b border-yellow-500/30 pb-2 mb-4">Wildcard Battle Management</h3>
+                            <div id="wildcard-management-content" class="space-y-4">
+                                <!-- Content will be dynamically loaded -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Judge Dashboard -->
+                <div id="judge-dashboard" class="page space-y-8">
+                    <h2 class="text-4xl font-heading tracking-wider theme-gold text-center">Judge's Dashboard</h2>
+                    <div id="judge-competition-ended-message" class="glass-card p-6 rounded-lg text-center text-xl font-bold text-red-500 hidden mb-6">
+                        Competition has ENDED. Judging is now closed.
+                    </div>
+                    <div id="judge-announcements"></div>
+                    <div class="glass-card p-6 rounded-lg">
+                        <h3 class="text-2xl font-heading theme-gold border-b border-yellow-500/30 pb-2 mb-4">Talents to Judge (Active Round: <span id="judge-active-round-name" class="font-bold"></span>)</h3>
+                        <div id="judge-talent-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Talent cards will be injected here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audience Dashboard -->
+                <div id="audience-dashboard" class="page space-y-8">
+                    <h2 class="text-4xl font-heading tracking-wider theme-gold text-center">Audience Voting</h2>
+                    <div id="audience-competition-ended-message" class="glass-card p-6 rounded-lg text-center text-xl font-bold text-red-500 hidden mb-6">
+                        Competition has ENDED. Audience voting is now closed.
+                    </div>
+                    <div id="audience-announcements"></div>
+                    <div class="glass-card p-6 rounded-lg">
+                        <div id="audience-voting-section">
+                            <h3 class="text-2xl font-heading theme-gold border-b border-yellow-500/30 pb-2 mb-4">Vote for Your Chosen Talent! (Active Round: <span id="audience-active-round-name" class="font-bold"></span>)</h3>
+                            <p class="text-sm text-gray-400 mb-4 text-center">You can only cast one vote per round.</p>
+                            <div id="audience-talent-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <!-- Talent cards for audience voting will be injected here -->
+                            </div>
+                        </div>
+                        <div id="audience-voting-closed" class="hidden text-center text-gray-400 text-lg">
+                            <p>Audience voting is currently closed. Please check back later!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Talent Dashboard -->
+                <div id="talent-dashboard" class="page space-y-8 max-w-3xl mx-auto">
+                    <h2 class="text-4xl font-heading tracking-wider theme-gold text-center">Talent Dashboard</h2>
+                     <div id="talent-competition-ended-message" class="glass-card p-6 rounded-lg text-center text-xl font-bold text-red-500 hidden mb-6">
+                        Competition has ENDED. Congratulations to all participants!
+                    </div>
+                    <div id="talent-announcements"></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="glass-card p-6 rounded-lg">
+                            <h3 class="text-2xl font-heading theme-gold border-b border-yellow-500/30 pb-2 mb-4">My Information</h3>
+                            <div id="talent-info"></div>
+                        </div>
+                        <div class="glass-card p-6 rounded-lg">
+                               <h3 class="text-2xl font-heading theme-gold border-b border-yellow-500/30 pb-2 mb-4">Official Criteria</h3>
+                            <div id="talent-criteria-view"></div>
+                        </div>
+                        <div id="talent-results-section" class="md:col-span-2 glass-card p-6 rounded-lg hidden">
+                            <h3 class="text-2xl font-heading theme-gold border-b border-yellow-500/30 pb-2 mb-4">My Results (Round: <span id="talent-result-round-name" class="font-bold"></span>)</h3>
+                            <div id="talent-result-display" class="text-center">
+                               <p class="text-lg">Results are not yet revealed. Please wait for the organizer's announcement.</p>
+                            </div>
+                            <div class="text-center mt-6">
+                                <button id="download-cert-btn" class="bg-theme-gold hover-bg-theme-gold-dark text-black font-bold py-3 px-5 rounded-md transition disabled:bg-gray-500 disabled:cursor-not-allowed" disabled>Download E-Certificate</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Public Display -->
+                <div id="public-display" class="page space-y-8">
+                    <h2 class="text-4xl font-heading tracking-wider theme-gold text-center">Live Contest Overview</h2>
+                    <div id="public-competition-ended-message" class="glass-card p-6 rounded-lg text-center text-xl font-bold text-red-500 hidden mb-6">
+                        Competition has ENDED. Thank you for participating!
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="glass-card p-6 rounded-lg">
+                            <h3 class="text-2xl font-heading theme-gold border-b border-yellow-500/30 pb-2 mb-4">Current Round & Announcements</h3>
+                            <p class="text-xl text-yellow-400 mb-2">Active Round: <span id="public-active-round-name" class="font-bold"></span></p>
+                            <div id="public-announcements" class="mt-4">
+                                <p class="text-gray-400">Loading announcements...</p>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 rounded-lg lg:col-span-1">
+                            <h3 class="text-2xl font-heading theme-gold border-b border-yellow-500/30 pb-2 mb-4">Performance Schedule</h3>
+                            <div id="public-performance-schedule" class="space-y-3">
+                                <p class="text-gray-400">Loading schedule...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="glass-card p-6 rounded-lg">
+                        <h3 class="text-2xl font-heading theme-gold border-b border-yellow-500/30 pb-2 mb-4">Live Rankings</h3>
+                        <div id="public-rankings-table" class="overflow-x-auto mt-4">
+                            <p class="text-gray-400">Loading rankings...</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <!-- Modal for Scoring / Voting -->
+    <div id="scoring-modal" class="fixed inset-0 bg-black bg-opacity-80 z-40 items-center justify-center hidden">
+        <div id="scoring-modal-content" class="glass-card p-8 rounded-lg shadow-2xl w-full max-w-lg mx-4">
+               <!-- Content will be injected by JS -->
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-80 z-50 items-center justify-center hidden">
+        <div class="glass-card p-8 rounded-lg shadow-2xl w-full max-w-sm mx-4 text-center">
+            <h3 id="confirm-title" class="text-2xl font-heading theme-gold mb-4">Are you sure?</h3>
+            <p id="confirm-text" class="text-gray-300 mb-6">This action cannot be undone.</p>
+            <div class="flex justify-center space-x-4">
+                <button id="confirm-cancel-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-md transition">Cancel</button>
+                <button id="confirm-ok-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-md transition">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Detailed Score Computation -->
+    <div id="detailed-score-modal" class="fixed inset-0 bg-black bg-opacity-80 z-40 items-center justify-center hidden">
+        <div class="glass-card p-8 rounded-lg shadow-2xl w-full max-w-3xl mx-4 overflow-y-auto max-h-[90vh]">
+            <h3 class="text-3xl font-heading theme-gold mb-4">Detailed Score for <span id="detailed-score-talent-name"></span></h3>
+            <div id="detailed-score-content" class="space-y-6">
+                <!-- Content injected here -->
+            </div>
+            <div class="text-right mt-6">
+                <button id="close-detailed-score-modal" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wildcard Talent Selection Modal -->
+    <div id="wildcard-selection-modal" class="fixed inset-0 bg-black bg-opacity-80 z-50 items-center justify-center hidden">
+        <div class="glass-card p-8 rounded-lg shadow-2xl w-full max-w-lg mx-4">
+            <h3 class="text-2xl font-heading theme-gold mb-4">Select Talents for Wildcard Battle</h3>
+            <div id="eligible-wildcard-talents-list" class="space-y-2 max-h-60 overflow-y-auto pr-2">
+                <!-- Checkboxes for eligible talents will be injected here -->
+            </div>
+            <p id="wildcard-selection-message" class="text-sm text-gray-400 mt-4"></p>
+            <div class="flex justify-end space-x-4 pt-4">
+                <button id="cancel-wildcard-selection" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition">Cancel</button>
+                <button id="confirm-wildcard-selection" class="bg-theme-gold hover-bg-theme-gold-dark text-black font-bold py-2 px-4 rounded-md transition">Confirm Selection</button>
+            </div>
+        </div>
+    </div>
+
+
+<script>
+    // --- Local Storage Database Management --- //
+    const DB_KEY = 'starlightContestDB';
+    // Audience can vote for only 1 talent per round
+    const AUDIENCE_VOTE_LIMIT = 1; 
+    // Number of talents that can return from a wildcard battle
+    const WILDCARD_WINNERS_COUNT = 2;
+
+    /**
+     * Retrieves the entire application database from Local Storage.
+     * Initializes with a default structure if no data is found.
+     * @returns {Object} The application database object.
+     */
+    const getDb = () => {
+        const dbString = localStorage.getItem(DB_KEY);
+        let db = {};
+        if (dbString) {
+            db = JSON.parse(dbString);
+        }
+        
+        // Ensure core structure exists, add new fields if missing from old data
+        db.users = db.users || {};
+        db.talents = db.talents || {};
+        db.scores = db.scores || {};
+        db.audienceVotes = db.audienceVotes || {};
+        db.config = db.config || {};
+        db.config.criteria = db.config.criteria || [];
+        db.config.audienceCriteria = db.config.audienceCriteria || [];
+        db.config.announcement = db.config.announcement || null;
+        db.config.resultsRevealed = db.config.resultsRevealed || false;
+        db.config.audienceVotingEnabled = db.config.audienceVotingEnabled || false;
+        db.config.judgeScoreWeight = db.config.judgeScoreWeight || 0.70;
+        db.config.audienceScoreWeight = db.config.audienceScoreWeight || 0.30;
+        db.config.competitionEnded = db.config.competitionEnded || false; // New: Competition end flag
+        db.config.finalRoundId = db.config.finalRoundId || null; // New: Stores the ID of the final round for overall results
+
+        // New fields for rounds and judge assignments
+        db.config.rounds = db.config.rounds || [];
+        if (db.config.rounds.length === 0) {
+            // Initialize first round as 'main' type
+            db.config.rounds.push({ id: 'round_1', name: 'Initial Round', isActive: true, type: 'main', slots: [], qualifierCount: 0 }); // Added qualifierCount
+        }
+        // Ensure all existing rounds have a 'type', 'slots', and 'qualifierCount' field
+        db.config.rounds.forEach(round => {
+            if (typeof round.type === 'undefined') round.type = 'main';
+            if (typeof round.slots === 'undefined') round.slots = [];
+            if (typeof round.participants === 'undefined' && round.type === 'wildcard') round.participants = []; // For wildcard rounds
+            // Default qualifierCount for main rounds, 0 means no automatic elimination
+            if (round.type === 'main' && typeof round.qualifierCount === 'undefined') {
+                round.qualifierCount = 0; 
+            }
+        });
+
+        db.config.activeRoundId = db.config.activeRoundId || db.config.rounds[0].id;
+        db.config.judgeAssignments = db.config.judgeAssignments || {}; // { roundId: { judgeId: [talentIds] } }
+
+        // Data migration for old scores/votes to new round structure if needed
+        Object.values(db.scores).forEach(score => {
+            if (!score.roundId) {
+                score.roundId = db.config.rounds[0].id;
+            }
+            if (typeof score.comment === 'undefined') { // Add comment field to existing scores
+                score.comment = '';
+            }
+        });
+        Object.values(db.audienceVotes).forEach(vote => {
+            if (!vote.roundId) {
+                vote.roundId = db.config.rounds[0].id;
+            }
+        });
+        // Migration for talents to include isEliminated and wildcardUsed flags
+        Object.values(db.talents).forEach(talent => {
+            if (typeof talent.isEliminated === 'undefined') {
+                talent.isEliminated = false;
+            }
+            if (typeof talent.wildcardUsed === 'undefined') { // New flag
+                talent.wildcardUsed = false;
+            }
+        });
+
+        return db;
+    };
+
+    /**
+     * Saves the current application database to Local Storage.
+     * @param {Object} dbObject The database object to save.
+     */
+    const saveDb = (dbObject) => {
+        localStorage.setItem(DB_KEY, JSON.stringify(dbObject));
+    };
+    
+    let db = getDb(); // Load the database once on script load
+
+    // --- Global State --- //
+    let currentAppUserId = null; // Our custom application user ID
+    let currentUserData = null; // Stores name, role of the current user
+    let publicDisplayInterval = null; // To store the interval for public display refresh
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM Elements Cache --- //
+        const elements = {
+            loadingOverlay: document.getElementById('loading-overlay'),
+            appHeader: document.getElementById('app-header'),
+            loginPage: document.getElementById('login-page'),
+            organizerDashboard: document.getElementById('organizer-dashboard'),
+            judgeDashboard: document.getElementById('judge-dashboard'),
+            audienceDashboard: document.getElementById('audience-dashboard'),
+            talentDashboard: document.getElementById('talent-dashboard'),
+            publicDisplay: document.getElementById('public-display'), // New
+            loginForm: document.getElementById('login-form'),
+            logoutButton: document.getElementById('logout-button'),
+            userNameDisplay: document.getElementById('user-name-display'),
+            userRoleDisplay: document.getElementById('user-role-display'),
+            scoringModal: document.getElementById('scoring-modal'),
+            confirmModal: document.getElementById('confirm-modal'),
+            detailedScoreModal: document.getElementById('detailed-score-modal'),
+            closeDetailedScoreModalBtn: document.getElementById('close-detailed-score-modal'),
+            wildcardSelectionModal: document.getElementById('wildcard-selection-modal'), // New
+            eligibleWildcardTalentsList: document.getElementById('eligible-wildcard-talents-list'), // New
+            confirmWildcardSelectionBtn: document.getElementById('confirm-wildcard-selection'), // New
+            cancelWildcardSelectionBtn: document.getElementById('cancel-wildcard-selection'), // New
+            wildcardSelectionMessage: document.getElementById('wildcard-selection-message'), // New
+            
+            // New elements for competition status messages
+            organizerCompetitionStatus: document.getElementById('organizer-competition-status'),
+            organizerCompetitionEndedMessage: document.getElementById('organizer-competition-ended-message'),
+            judgeCompetitionEndedMessage: document.getElementById('judge-competition-ended-message'),
+            audienceCompetitionEndedMessage: document.getElementById('audience-competition-ended-message'),
+            talentCompetitionEndedMessage: document.getElementById('talent-competition-ended-message'),
+            publicCompetitionEndedMessage: document.getElementById('public-competition-ended-message'),
+
+            // Sections to disable/hide for organizer when competition ends
+            roundsManagementSection: document.getElementById('rounds-management-section'),
+            judgeAssignmentSection: document.getElementById('judge-assignment-section'),
+            performanceSlotsSection: document.getElementById('performance-slots-section'),
+            criteriaManagementSection: document.getElementById('criteria-management-section'),
+            audienceVotingSettingsSection: document.getElementById('audience-voting-settings-section'),
+            announcementsSection: document.getElementById('announcements-section'),
+            registeredTalentsSection: document.getElementById('registered-talents-section'),
+            rankingsSection: document.getElementById('rankings-section'),
+            wildcardManagementSection: document.getElementById('wildcard-management-section'),
+            endCompetitionBtn: document.getElementById('end-competition-btn'),
+            resetCompetitionBtn: document.getElementById('reset-competition-btn'),
+        };
+
+        // --- UI Utility Functions --- //
+
+        /**
+         * Hides all dashboard pages and displays the specified page.
+         * Toggles header visibility based on whether the login page is shown.
+         * @param {string} pageId The ID of the page to display.
+         */
+        const showPage = (pageId) => {
+            document.querySelectorAll('.page').forEach(page => page.style.display = 'none');
+            document.getElementById(pageId).style.display = 'block';
+            elements.appHeader.classList.toggle('hidden', pageId === 'login-page');
+
+            // Clear existing intervals when changing pages, especially from public display
+            if (publicDisplayInterval) {
+                clearInterval(publicDisplayInterval);
+                publicDisplayInterval = null;
+            }
+        };
+
+        /**
+         * Shows or hides the loading spinner overlay.
+         * @param {boolean} isLoading True to show, false to hide.
+         */
+        const showLoading = (isLoading) => {
+            elements.loadingOverlay.style.display = isLoading ? 'flex' : 'none';
+        };
+        
+        /**
+         * Displays a transient toast notification.
+         * @param {string} message The message to display.
+         * @param {boolean} isError If true, shows a red error toast; otherwise, a green success toast.
+         */
+        const showToast = (message, isError = false) => {
+            const toast = document.getElementById('toast-notification');
+            const toastMessage = document.getElementById('toast-message');
+            
+            toastMessage.textContent = message;
+            toast.className = `fixed top-5 right-5 text-white py-2 px-5 rounded-lg shadow-lg transform transition-transform duration-500 z-50 ${isError ? 'bg-red-500' : 'bg-green-600'}`;
+            toast.classList.remove('translate-x-[120%]'); // Show toast
+            
+            // Hide toast after 3 seconds
+            setTimeout(() => {
+                toast.classList.add('translate-x-[120%]');
+            }, 3000);
+        };
+        
+        /**
+         * Displays a confirmation modal and executes a callback on confirmation.
+         * @param {string} title The title of the confirmation modal.
+         * @param {string} text The main text/question for confirmation.
+         * @param {Function} onConfirm The callback function to execute if the user confirms.
+         */
+        const showConfirm = (title, text, onConfirm) => {
+            const modal = elements.confirmModal;
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-text').textContent = text;
+            const okBtn = document.getElementById('confirm-ok-btn');
+            const cancelBtn = document.getElementById('confirm-cancel-btn');
+            
+            // Clone and replace buttons to remove previous event listeners
+            const newOkBtn = okBtn.cloneNode(true);
+            okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+            const newCancelBtn = cancelBtn.cloneNode(true);
+            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+            const close = () => modal.style.display = 'none';
+            newCancelBtn.onclick = close;
+            newOkBtn.onclick = () => { onConfirm(); close(); };
+            modal.style.display = 'flex';
+        };
+
+        // --- Authentication & Session Management --- //
+
+        /**
+         * Logs in a user, sets global state, and updates the dashboard.
+         * @param {string} appUserId The application-specific user ID.
+         */
+        const login = (appUserId) => {
+            currentAppUserId = appUserId;
+            sessionStorage.setItem('starlight_session_app_userId', appUserId); // Use a single session key
+            currentUserData = db.users[appUserId]; // Get user data from our in-memory db object
+
+            if (currentUserData) {
+                elements.userNameDisplay.textContent = currentUserData.name;
+                elements.userRoleDisplay.textContent = currentUserData.role;
+                updateDashboards(); // Call to render the appropriate dashboard
+            } else {
+                showToast("User data not found. Please log in again.", true);
+                showPage('login-page');
+            }
+        };
+
+        /**
+         * Logs out the current user, clears session, and returns to login page.
+         */
+        const logout = () => {
+            currentAppUserId = null;
+            currentUserData = null;
+            sessionStorage.removeItem('starlight_session_app_userId');
+            showToast("Logged out successfully.");
+            showPage('login-page');
+            document.getElementById('login-form').reset();
+        };
+        
+        elements.loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            showLoading(true);
+
+            let inputAppUserId = document.getElementById('userId').value.trim();
+            const name = document.getElementById('name').value.trim(); 
+            const role = document.getElementById('role').value;
+
+            let userDataFromDb = null;
+            if (inputAppUserId && db.users[inputAppUserId]) {
+                userDataFromDb = db.users[inputAppUserId];
+            }
+
+            if (userDataFromDb) {
+                // Existing user logging in: Validate credentials.
+                if (userDataFromDb.name !== name || userDataFromDb.role !== role) {
+                    showToast("User ID/PIN details do not match provided name/role.", true);
+                    showLoading(false);
+                    return;
+                }
+                login(userDataFromDb.id); // Use existing user's ID
+            } else {
+                // New user registration
+                let newAppUserId;
+                let isUnique = false;
+                let attempts = 0;
+                while (!isUnique && attempts < 100) { // Limit attempts to prevent infinite loop
+                    // Generate a random 4-digit PIN
+                    newAppUserId = Math.floor(1000 + Math.random() * 9000).toString();
+                    if (!db.users[newAppUserId]) { // Check if PIN is unique
+                        isUnique = true;
+                    }
+                    attempts++;
+                }
+                
+                if (!isUnique) {
+                    showToast("Could not generate a unique PIN. Please try again or contact support.", true);
+                    showLoading(false);
+                    return;
+                }
+
+                db.users[newAppUserId] = { id: newAppUserId, name, role };
+
+                if (role === 'talent') {
+                    db.talents[newAppUserId] = { id: newAppUserId, name, registeredAt: new Date().toISOString(), isEliminated: false, wildcardUsed: false }; // Added isEliminated and wildcardUsed
+                }
+                saveDb(db); // Save updated DB
+                showToast(`Welcome! Your new 4-digit PIN is: ${newAppUserId}. Please remember it for future logins.`, false);
+                document.getElementById('userId').value = newAppUserId; // Pre-fill for future logins
+                login(newAppUserId); // Log in new user
+            }
+            showLoading(false);
+        });
+
+        elements.logoutButton.addEventListener('click', logout);
+
+        // Check for active session on page load
+        const checkSession = () => {
+            const sessionAppUserId = sessionStorage.getItem('starlight_session_app_userId');
+            if (sessionAppUserId && db.users[sessionAppUserId]) {
+                login(sessionAppUserId);
+            } else {
+                showPage('login-page');
+            }
+            showLoading(false); // Hide loading after session check
+        };
+        checkSession(); // Initial session check on DOMContentLoaded
+
+        /**
+         * Orchestrates updating the active dashboard based on the current user's role.
+         * This function is called whenever Local Storage data is modified or upon login.
+         */
+        const updateDashboards = () => {
+            // Re-load DB to ensure latest data is used for rendering
+            db = getDb(); 
+            
+            if (!currentUserData) {
+                showPage('login-page');
+                return;
+            }
+            elements.userNameDisplay.textContent = currentUserData.name;
+            elements.userRoleDisplay.textContent = currentUserData.role;
+
+            // Clear any existing public display interval when changing dashboards
+            if (publicDisplayInterval) {
+                clearInterval(publicDisplayInterval);
+                publicDisplayInterval = null;
+            }
+
+            switch(currentUserData.role) {
+                case 'organizer': setupOrganizerDashboard(); showPage('organizer-dashboard'); break;
+                case 'judge': setupJudgeDashboard(); showPage('judge-dashboard'); break;
+                case 'audience': setupAudienceDashboard(); showPage('audience-dashboard'); break;
+                case 'talent': setupTalentDashboard(); showPage('talent-dashboard'); break;
+                case 'public': setupPublicDisplay(); showPage('public-display'); break; // New
+                default: showPage('login-page'); // Fallback
+            }
+        };
+
+        // --- Helper to get talents for the current active round ---
+        const getTalentsForCurrentRound = () => {
+            const activeRound = db.config.rounds.find(r => r.isActive);
+            if (!activeRound) return [];
+
+            if (activeRound.type === 'wildcard' && activeRound.participants && activeRound.participants.length > 0) {
+                // For wildcard rounds, display only the participants for that battle
+                return activeRound.participants.map(talentId => db.talents[talentId]).filter(Boolean); // Filter out any null/undefined if ID is bad
+            } else {
+                // For main rounds, display all non-eliminated talents
+                return Object.values(db.talents).filter(t => !t.isEliminated);
+            }
+        };
+
+        /**
+         * Helper function to calculate rankings for a specific round.
+         * This logic is extracted so it can be reused for both display and elimination.
+         * @param {string} roundId The ID of the round to calculate rankings for.
+         * @returns {Array<Object>} Sorted list of talent rankings for the given round.
+         */
+        const calculateRankingsForRound = (roundId) => {
+            const targetRound = db.config.rounds.find(r => r.id === roundId);
+            if (!targetRound) return [];
+
+            // Talents participating in this specific round (main or wildcard participants)
+            // If the competition is ended and we're looking at the final round, consider all talents that were active in that round.
+            const talentsInRound = (db.config.competitionEnded && roundId === db.config.finalRoundId)
+                ? Object.values(db.talents).filter(t => !t.isEliminated) // For final round, consider all active talents before end
+                : (targetRound.type === 'wildcard' 
+                    ? targetRound.participants.map(id => db.talents[id]).filter(Boolean)
+                    : Object.values(db.talents).filter(t => !t.isEliminated)); 
+
+            const allAudienceVotesInRound = Object.values(db.audienceVotes).filter(v => v.roundId === roundId);
+
+            let highestVotesReceived = 0;
+            const talentVoteCounts = {};
+            talentsInRound.forEach(talent => {
+                const votesForThisTalent = allAudienceVotesInRound.filter(v => v.talentId === talent.id).length;
+                talentVoteCounts[talent.id] = votesForThisTalent;
+                if (votesForThisTalent > highestVotesReceived) {
+                    highestVotesReceived = votesForThisTalent;
+                }
+            });
+
+            let rankings = talentsInRound.map(talent => {
+                const talentScoresByJudge = Object.values(db.scores).filter(s => s.talentId === talent.id && s.roundId === roundId);
+                const votesForThisTalent = talentVoteCounts[talent.id] || 0;
+
+                const totalJudgesWhoScoredThisTalent = talentScoresByJudge.length;
+                const judgeAverage = totalJudgesWhoScoredThisTalent > 0 ? talentScoresByJudge.reduce((sum, s) => sum + s.weightedTotal, 0) / totalJudgesWhoScoredThisTalent : 0;
+                const audienceScore = (highestVotesReceived > 0 ? (votesForThisTalent / highestVotesReceived) * 100 : 0);
+
+                let finalScore = 0;
+                const judgeWeight = db.config.judgeScoreWeight;
+                const audienceWeight = db.config.audienceScoreWeight;
+
+                if (totalJudgesWhoScoredThisTalent > 0 && db.config.audienceVotingEnabled) {
+                    finalScore = (judgeAverage * judgeWeight) + (audienceScore * audienceWeight);
+                } else if (totalJudgesWhoScoredThisTalent > 0) {
+                    finalScore = judgeAverage;
+                } else if (db.config.audienceVotingEnabled && highestVotesReceived > 0) {
+                    finalScore = audienceScore;
+                }
+                // For main rounds, if talent is eliminated (globally), their score for this round is 0
+                if (talent.isEliminated && targetRound.type === 'main') {
+                    finalScore = 0;
+                }
+
+                return {
+                    id: talent.id,
+                    name: talent.name,
+                    finalScore: finalScore, // Keep as number for sorting
+                    judgeAverage: judgeAverage, 
+                    audienceScore: audienceScore, 
+                    judgesCount: totalJudgesWhoScoredThisTalent,
+                    audienceVotesCount: votesForThisTalent,
+                    isEliminated: talent.isEliminated // Global status
+                };
+            });
+            rankings.sort((a, b) => b.finalScore - a.finalScore); // Sort by numeric score
+            return rankings;
+        };
+
+
+        // --- Organizer Dashboard Logic --- //
+        const setupOrganizerDashboard = () => {
+            const criteriaList = document.getElementById('criteria-list');
+            const criteriaForm = document.getElementById('criteria-form');
+            const addCriterionBtn = document.getElementById('add-criterion-btn');
+            const audienceVotingToggle = document.getElementById('audience-voting-toggle');
+            const audienceCriteriaSection = document.getElementById('audience-criteria-section');
+            const audienceCriteriaList = document.getElementById('audience-criteria-list');
+            const audienceCriteriaForm = document.getElementById('audience-criteria-form');
+            const addAudienceCriterionBtn = document.getElementById('add-audience-criterion-btn');
+            const talentListContainer = document.getElementById('organizer-talent-list');
+            const rankingsTable = document.getElementById('rankings-table');
+            const revealBtn = document.getElementById('reveal-results-btn');
+            const announcementForm = document.getElementById('announcement-form');
+            const latestAnnouncementDiv = document.getElementById('latest-announcement');
+
+            const roundForm = document.getElementById('round-form');
+            const newRoundNameInput = document.getElementById('new-round-name');
+            const roundsListDiv = document.getElementById('rounds-list');
+            const judgeAssignmentsContent = document.getElementById('judge-assignments-content');
+
+            const slotForm = document.getElementById('slot-form'); 
+            const newSlotTimeInput = document.getElementById('new-slot-time'); 
+            const slotsListDiv = document.getElementById('slots-list'); 
+            const slotsActiveRoundName = document.getElementById('slots-active-round-name'); 
+            
+            const wildcardManagementContent = document.getElementById('wildcard-management-content');
+
+            // Handle Competition Ended State for Organizer Dashboard
+            const isCompetitionEnded = db.config.competitionEnded;
+            elements.organizerCompetitionStatus.classList.toggle('hidden', isCompetitionEnded);
+            elements.organizerCompetitionEndedMessage.classList.toggle('hidden', !isCompetitionEnded);
+
+            // Hide/disable sections if competition has ended
+            const sectionsToToggle = [
+                elements.roundsManagementSection,
+                elements.judgeAssignmentSection,
+                elements.performanceSlotsSection,
+                elements.criteriaManagementSection,
+                elements.audienceVotingSettingsSection,
+                elements.announcementsSection,
+                elements.registeredTalentsSection, // Might keep visible but disable actions
+                elements.wildcardManagementSection
+            ];
+
+            sectionsToToggle.forEach(section => {
+                if (section) {
+                    section.classList.toggle('opacity-50', isCompetitionEnded);
+                    section.querySelectorAll('input, button, select, textarea').forEach(input => {
+                        input.disabled = isCompetitionEnded;
+                    });
+                    // Explicitly re-enable the reset button if competition ended
+                    if (isCompetitionEnded && section.id === 'organizer-competition-ended-message') {
+                        elements.resetCompetitionBtn.disabled = false;
+                    }
+                }
+            });
+
+            // Specific controls for 'End Competition' button visibility/state
+            if (isCompetitionEnded) {
+                elements.endCompetitionBtn.style.display = 'none';
+            } else {
+                elements.endCompetitionBtn.style.display = 'block';
+                elements.endCompetitionBtn.onclick = () => {
+                    const activeRound = db.config.rounds.find(r => r.isActive);
+                    if (!activeRound) {
+                        showToast("Please ensure there is an active round before ending the competition.", true);
+                        return;
+                    }
+                    showConfirm(
+                        "End Competition?",
+                        `Are you sure you want to declare the competition ended? This will finalize results for all, disable further judging/voting, and prepare for prize distribution. This action cannot be easily undone.`,
+                        () => {
+                            showLoading(true);
+                            db.config.competitionEnded = true;
+                            db.config.finalRoundId = activeRound.id; // Designate current active round as final
+                            db.config.resultsRevealed = true; // Ensure results are revealed for final round
+                            saveDb(db);
+                            showToast("Competition has been successfully ended!");
+                            updateDashboards();
+                            showLoading(false);
+                        }
+                    );
+                };
+            }
+
+            // DEBUG ONLY: Reset Competition button
+            elements.resetCompetitionBtn.onclick = () => {
+                showConfirm(
+                    "Reset Competition?",
+                    "WARNING: This will clear all data and reset the competition to its initial state. This is irreversible. Are you absolutely sure?",
+                    () => {
+                        showLoading(true);
+                        localStorage.removeItem(DB_KEY); // Clear all stored data
+                        db = getDb(); // Re-initialize db
+                        logout(); // Log out current user
+                        showToast("Competition has been reset!", false);
+                        showLoading(false);
+                    }
+                );
+            };
+
+            // Get the active round to display its name in the slots section
+            const activeRound = db.config.rounds.find(r => r.isActive);
+            slotsActiveRoundName.textContent = activeRound ? activeRound.name : 'N/A';
+
+            // Render Contest Rounds Management
+            const renderRoundsManagement = () => {
+                roundsListDiv.innerHTML = '';
+                db.config.rounds.forEach(round => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center justify-between glass-card p-3 rounded-md mb-2';
+                    div.innerHTML = `
+                        <div class="flex-grow flex items-center space-x-2">
+                            <span class="font-bold text-lg ${round.isActive ? 'theme-gold' : 'text-gray-400'}">
+                                ${round.name} (${round.type === 'wildcard' ? 'Wildcard' : 'Main'})
+                            </span>
+                            ${round.type === 'main' ? `
+                                <div class="flex items-center">
+                                    <label for="qualifier-count-${round.id}" class="text-sm text-gray-400 mr-2">Qualifiers:</label>
+                                    <input type="number" id="qualifier-count-${round.id}" value="${round.qualifierCount}" min="0" class="w-16 bg-gray-700 border border-gray-600 rounded-md py-0.5 px-1 text-white text-sm" data-round-id="${round.id}" ${isCompetitionEnded ? 'disabled' : ''}>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <button data-round-id="${round.id}" class="set-active-round-btn bg-gray-700 hover:bg-gray-600 text-white text-sm py-1 px-3 rounded-md transition ${round.isActive ? 'bg-yellow-700 cursor-not-allowed' : ''}" ${round.isActive || isCompetitionEnded ? 'disabled' : ''}>
+                            ${round.isActive ? 'Active' : 'Set Active'}
+                        </button>
+                    `;
+                    roundsListDiv.appendChild(div);
+                });
+
+                document.querySelectorAll('.set-active-round-btn').forEach(button => {
+                    button.onclick = (e) => {
+                        if (isCompetitionEnded) return; // Prevent action if competition ended
+                        const roundId = e.target.dataset.roundId;
+                        const selectedRound = db.config.rounds.find(r => r.id === roundId);
+                        showConfirm(
+                            "Change Active Round?", 
+                            `This will change the active scoring period to '${selectedRound.name}' (${selectedRound.type}). Continue?`, 
+                            () => {
+                                showLoading(true);
+                                db.config.rounds.forEach(r => r.isActive = (r.id === roundId));
+                                db.config.activeRoundId = roundId;
+                                saveDb(db);
+                                showToast(`Round '${selectedRound.name}' is now active!`);
+                                updateDashboards();
+                                showLoading(false);
+                            }
+                        );
+                    };
+                });
+
+                // Add event listeners for qualifier count input changes
+                document.querySelectorAll('input[id^="qualifier-count-"]').forEach(input => {
+                    input.onchange = (e) => {
+                        if (isCompetitionEnded) return; // Prevent action if competition ended
+                        const roundId = e.target.dataset.roundId;
+                        const newCount = parseInt(e.target.value);
+                        const targetRound = db.config.rounds.find(r => r.id === roundId);
+                        if (targetRound && !isNaN(newCount) && newCount >= 0) {
+                            targetRound.qualifierCount = newCount;
+                            saveDb(db);
+                            showToast(`Qualifier count for ${targetRound.name} updated to ${newCount}.`);
+                        } else {
+                            showToast("Invalid qualifier count.", true);
+                        }
+                    };
+                });
+            };
+
+            roundForm.onsubmit = (e) => {
+                e.preventDefault();
+                if (isCompetitionEnded) return; // Prevent action if competition ended
+                showLoading(true);
+                const roundName = newRoundNameInput.value.trim();
+                if (roundName) {
+                    const newRoundId = `round_${Date.now()}`; // Unique ID for round
+                    db.config.rounds.push({ id: newRoundId, name: roundName, isActive: false, type: 'main', slots: [], qualifierCount: 0 }); // Default to 'main'
+                    saveDb(db);
+                    newRoundNameInput.value = '';
+                    showToast(`New main round '${roundName}' added!`);
+                    renderRoundsManagement();
+                } else {
+                    showToast("Round name cannot be empty.", true);
+                }
+                showLoading(false);
+            };
+
+            // Render Judge Assignments
+            const renderJudgeAssignments = () => {
+                const judges = Object.values(db.users).filter(u => u.role === 'judge');
+                // For judge assignments, we generally want to see *all* talents, regardless of elimination status,
+                // so the organizer can choose who to assign.
+                const talents = Object.values(db.talents); 
+                const activeRound = db.config.rounds.find(r => r.isActive) || db.config.rounds[0];
+                const currentAssignments = db.config.judgeAssignments[activeRound.id] || {};
+
+                if (judges.length === 0 || talents.length === 0) {
+                    judgeAssignmentsContent.innerHTML = `<p class="text-gray-400">Please register judges and talents first to assign them.</p>`;
+                    return;
+                }
+
+                let html = `<h4 class="text-xl font-heading theme-gold mb-3">Assignments for: ${activeRound.name} (${activeRound.type === 'wildcard' ? 'Wildcard' : 'Main'})</h4>`;
+                
+                judges.forEach(judge => {
+                    html += `
+                        <div class="glass-card p-4 rounded-lg mb-4">
+                            <p class="font-bold text-lg text-yellow-400 mb-2">${judge.name}</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                ${talents.map(talent => {
+                                    const isAssigned = (currentAssignments[judge.id] || []).includes(talent.id);
+                                    return `
+                                        <label class="inline-flex items-center text-gray-300">
+                                            <input type="checkbox" class="form-checkbox h-5 w-5 text-theme-gold rounded"
+                                                data-judge-id="${judge.id}"
+                                                data-talent-id="${talent.id}"
+                                                ${isAssigned ? 'checked' : ''} ${isCompetitionEnded ? 'disabled' : ''}>
+                                            <span class="ml-2">${talent.name} ${talent.isEliminated ? '<span class="text-red-500 text-xs">(Eliminated)</span>' : ''} ${talent.wildcardUsed ? '<span class="text-purple-400 text-xs">(Wildcard Used)</span>' : ''}</span>
+                                        </label>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+                judgeAssignmentsContent.innerHTML = html;
+
+                document.querySelectorAll('#judge-assignments-content input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.onchange = (e) => {
+                        if (isCompetitionEnded) return; // Prevent action if competition ended
+                        showLoading(true);
+                        const judgeId = e.target.dataset.judgeId;
+                        const talentId = e.target.dataset.talentId;
+                        const isChecked = e.target.checked;
+
+                        db.config.judgeAssignments[activeRound.id] = db.config.judgeAssignments[activeRound.id] || {};
+                        db.config.judgeAssignments[activeRound.id][judgeId] = db.config.judgeAssignments[activeRound.id][judgeId] || [];
+
+                        if (isChecked) {
+                            if (!db.config.judgeAssignments[activeRound.id][judgeId].includes(talentId)) {
+                                db.config.judgeAssignments[activeRound.id][judgeId].push(talentId);
+                            }
+                        } else {
+                            db.config.judgeAssignments[activeRound.id][judgeId] = db.config.judgeAssignments[activeRound.id][judgeId].filter(id => id !== talentId);
+                        }
+                        saveDb(db);
+                        showToast("Judge assignments updated!");
+                        showLoading(false);
+                    };
+                });
+            };
+
+            // Render Performance Slots for the active round
+            const renderPerformanceSlots = () => {
+                slotsListDiv.innerHTML = '';
+                const activeRoundData = db.config.rounds.find(r => r.isActive);
+                const currentSlots = activeRoundData ? activeRoundData.slots : [];
+                // Use the helper function to get talents relevant to the active round type
+                const talentsForAssignment = getTalentsForCurrentRound(); 
+
+                if (currentSlots.length === 0) {
+                    slotsListDiv.innerHTML = `<p class="text-gray-400">No performance slots added for this round yet.</p>`;
+                } else {
+                    // Sort slots by time
+                    currentSlots.sort((a, b) => a.time.localeCompare(b.time));
+
+                    currentSlots.forEach(slot => {
+                        const div = document.createElement('div');
+                        div.className = 'glass-card p-3 rounded-md mb-2 flex items-center space-x-3';
+                        div.innerHTML = `
+                            <span class="font-bold text-lg theme-gold">${slot.time}</span>
+                            <select data-slot-id="${slot.id}" class="assign-talent-to-slot-select flex-grow bg-gray-700 border border-gray-600 rounded-md py-1 px-2 text-white focus:outline-none focus:ring-yellow-500 focus:border-yellow-500" ${isCompetitionEnded ? 'disabled' : ''}>
+                                <option value="">-- Assign Talent --</option>
+                                ${talentsForAssignment.map(t => `<option value="${t.id}" ${slot.talentId === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
+                            </select>
+                            <button data-slot-id="${slot.id}" class="remove-slot-btn bg-red-600 hover:bg-red-700 text-white text-sm py-1 px-3 rounded-md transition" ${isCompetitionEnded ? 'disabled' : ''}>&times;</button>
+                        `;
+                        slotsListDiv.appendChild(div);
+                    });
+
+                    // Add event listeners for talent assignment and slot removal
+                    document.querySelectorAll('.assign-talent-to-slot-select').forEach(select => {
+                        select.onchange = (e) => {
+                            if (isCompetitionEnded) return; // Prevent action if competition ended
+                            showLoading(true);
+                            const slotId = e.target.dataset.slotId;
+                            const talentId = e.target.value;
+                            const talentName = talentId ? e.target.options[e.target.selectedIndex].text : '';
+
+                            const targetRound = db.config.rounds.find(r => r.isActive);
+                            if (targetRound) {
+                                const targetSlot = targetRound.slots.find(s => s.id === slotId);
+                                if (targetSlot) {
+                                    targetSlot.talentId = talentId;
+                                    targetSlot.talentName = talentName;
+                                    saveDb(db);
+                                    showToast(`Talent assigned to slot ${targetSlot.time}!`);
+                                    renderPerformanceSlots(); // Re-render to update UI
+                                }
+                            }
+                            showLoading(false);
+                        };
+                    });
+
+                    document.querySelectorAll('.remove-slot-btn').forEach(button => {
+                        button.onclick = (e) => {
+                            if (isCompetitionEnded) return; // Prevent action if competition ended
+                            const slotId = e.target.dataset.slotId;
+                            showConfirm("Remove Slot?", "Are you sure you want to remove this performance slot?", () => {
+                                showLoading(true);
+                                const targetRound = db.config.rounds.find(r => r.isActive);
+                                if (targetRound) {
+                                    targetRound.slots = targetRound.slots.filter(s => s.id !== slotId);
+                                    saveDb(db);
+                                    showToast("Performance slot removed!");
+                                    renderPerformanceSlots();
+                                }
+                                showLoading(false);
+                            });
+                        };
+                    });
+                }
+            };
+
+            // Handle adding new performance slot
+            slotForm.onsubmit = (e) => {
+                e.preventDefault();
+                if (isCompetitionEnded) return; // Prevent action if competition ended
+                showLoading(true);
+                const newSlotTime = newSlotTimeInput.value;
+                if (newSlotTime) {
+                    const activeRoundData = db.config.rounds.find(r => r.isActive);
+                    if (activeRoundData) {
+                        // Check for duplicate times
+                        if (activeRoundData.slots.some(s => s.time === newSlotTime)) {
+                            showToast("A slot with this time already exists.", true);
+                            showLoading(false);
+                            return;
+                        }
+
+                        const newSlotId = `slot_${Date.now()}`;
+                        activeRoundData.slots.push({ id: newSlotId, time: newSlotTime, talentId: null, talentName: null });
+                        saveDb(db);
+                        newSlotTimeInput.value = ''; // Clear input
+                        showToast(`Performance slot ${newSlotTime} added!`);
+                        renderPerformanceSlots();
+                    }
+                } else {
+                    showToast("Please enter a time for the new slot.", true);
+                }
+                showLoading(false);
+            };
+            
+            // Render Judging Criteria fields
+            const renderCriteria = () => {
+                criteriaList.innerHTML = '';
+                db.config.criteria.forEach(c => addCriterion(c, criteriaList));
+            };
+            
+            /**
+             * Adds a criterion input row to a specified container.
+             * @param {Object} criterion The criterion object {name, weight}.
+             * @param {HTMLElement} container The DOM element to append the criterion row to.
+             */
+            const addCriterion = (criterion = { name: '', weight: '' }, container) => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center space-x-2';
+                div.innerHTML = `
+                    <input type="text" value="${criterion.name}" placeholder="Criterion Name" class="flex-grow bg-gray-700 border border-gray-600 rounded-md py-1 px-2 text-white focus:outline-none focus:ring-yellow-500 focus:border-yellow-500" required ${isCompetitionEnded ? 'disabled' : ''}>
+                    <input type="number" value="${criterion.weight}" placeholder="Weight %" class="w-24 bg-gray-700 border border-gray-600 rounded-md py-1 px-2 text-white" required min="1" max="100" ${isCompetitionEnded ? 'disabled' : ''}>
+                    <button type="button" class="text-red-500 hover:text-red-400 p-1 text-2xl leading-none" ${isCompetitionEnded ? 'disabled' : ''}>&times;</button>
+                `;
+                div.querySelector('button').onclick = () => div.remove(); // Remove row from UI
+                container.appendChild(div);
+            };
+
+            addCriterionBtn.onclick = () => {
+                if (isCompetitionEnded) return; // Prevent action if competition ended
+                addCriterion(undefined, criteriaList);
+            };
+
+            // Handle judge criteria form submission
+            criteriaForm.onsubmit = (e) => {
+                e.preventDefault();
+                if (isCompetitionEnded) return; // Prevent action if competition ended
+                showLoading(true);
+                const criteria = Array.from(criteriaList.children).map(div => ({
+                    name: div.querySelector('input[type="text"]').value,
+                    weight: parseInt(div.querySelector('input[type="number"]').value)
+                }));
+                // Corrected sum variable reference in reduce
+                const totalWeight = criteria.reduce((acc, c) => acc + c.weight, 0);
+                if (totalWeight !== 100) {
+                    showToast(`Judging criteria total weight must be 100, but it is ${totalWeight}.`, true);
+                    showLoading(false);
+                    return;
+                }
+                db.config.criteria = criteria;
+                saveDb(db);
+                showToast("Judging criteria saved successfully!");
+                updateDashboards(); // Re-render to reflect changes
+                showLoading(false);
+            };
+
+            // Audience Voting Toggle & Criteria Management
+            audienceVotingToggle.checked = db.config.audienceVotingEnabled;
+            audienceCriteriaSection.classList.toggle('hidden', !db.config.audienceVotingEnabled);
+            if (isCompetitionEnded) audienceVotingToggle.disabled = true;
+
+            // Handle audience voting toggle change
+            audienceVotingToggle.onchange = () => {
+                if (isCompetitionEnded) return; // Prevent action if competition ended
+                showLoading(true);
+                const isEnabled = audienceVotingToggle.checked;
+                db.config.audienceVotingEnabled = isEnabled;
+                saveDb(db);
+                audienceCriteriaSection.classList.toggle('hidden', !isEnabled); // Show/hide audience criteria section
+                showToast(`Audience voting ${isEnabled ? 'enabled' : 'disabled'}.`);
+                updateDashboards(); // Re-render to reflect changes
+                showLoading(false);
+            };
+
+            // Render Audience Criteria fields
+            const renderAudienceCriteria = () => {
+                // Audience criteria are no longer used for scoring, but kept for consistency if organizer sets them
+                audienceCriteriaList.innerHTML = '';
+                db.config.audienceCriteria.forEach(c => addCriterion(c, audienceCriteriaList));
+            };
+
+            addAudienceCriterionBtn.onclick = () => {
+                if (isCompetitionEnded) return; // Prevent action if competition ended
+                addCriterion(undefined, audienceCriteriaList);
+            };
+
+            // Handle audience criteria form submission
+            audienceCriteriaForm.onsubmit = (e) => {
+                e.preventDefault();
+                if (isCompetitionEnded) return; // Prevent action if competition ended
+                showLoading(true);
+                const audienceCriteria = Array.from(audienceCriteriaList.children).map(div => ({
+                    name: div.querySelector('input[type="text"]').value,
+                    weight: parseInt(div.querySelector('input[type="number"]').value)
+                }));
+                // Corrected sum variable reference in reduce
+                const totalWeight = audienceCriteria.reduce((acc, c) => acc + c.weight, 0);
+                if (totalWeight !== 100) {
+                    showToast(`Audience criteria total weight must be 100, but it is ${totalWeight}.`, true);
+                    showLoading(false);
+                    return;
+                }
+                db.config.audienceCriteria = audienceCriteria;
+                saveDb(db);
+                showToast("Audience criteria saved successfully!");
+                updateDashboards(); // Re-render to reflect changes
+                showLoading(false);
+            };
+
+            // Handle announcement form submission
+            announcementForm.onsubmit = (e) => {
+                e.preventDefault();
+                if (isCompetitionEnded) return; // Prevent action if competition ended
+                showLoading(true);
+                const text = document.getElementById('announcement-text').value.trim();
+                if (!text) {
+                    showLoading(false);
+                    showToast("Announcement text cannot be empty.", true);
+                    return;
+                }
+                db.config.announcement = { text, timestamp: new Date().toISOString() };
+                saveDb(db);
+                document.getElementById('announcement-text').value = ''; // Clear input
+                showToast("Announcement posted!");
+                updateDashboards(); // Re-render to reflect changes
+                showLoading(false);
+            };
+            
+            // Handle "Reveal Results" button click
+            revealBtn.onclick = () => {
+                if (isCompetitionEnded) return; // Prevent action if competition ended
+                const activeRound = db.config.rounds.find(r => r.isActive);
+                if (!activeRound) {
+                    showToast("No active round to reveal results for.", true);
+                    return;
+                }
+                if (activeRound.type === 'wildcard') {
+                    showToast("Results for wildcard battles are declared using 'Declare Wildcard Winners' button.", true);
+                    return;
+                }
+
+                showConfirm("Reveal Results and Qualify Talents?", `This will finalize results for ${activeRound.name}, eliminate non-qualifiers based on the set qualifier count (${activeRound.qualifierCount}), and make results visible to talents. This action cannot be undone.`, () => {
+                    showLoading(true);
+                    db.config.resultsRevealed = true; // Still reveal globally
+
+                    // Calculate rankings for elimination
+                    const rankings = calculateRankingsForRound(activeRound.id);
+                    
+                    // Determine qualifiers based on qualifierCount
+                    const qualifierCount = activeRound.qualifierCount;
+                    const qualifiedTalentIds = rankings.slice(0, qualifierCount).map(t => t.id);
+
+                    // Eliminate non-qualifiers
+                    Object.values(db.talents).forEach(talent => {
+                        // Only eliminate active talents from THIS round if they are not in the qualified list
+                        const wasParticipant = rankings.some(r => r.id === talent.id); // Check if they were ranked in this round
+                        if (wasParticipant && !qualifiedTalentIds.includes(talent.id)) {
+                             db.talents[talent.id].isEliminated = true;
+                        }
+                    });
+
+                    saveDb(db);
+                    showToast("Results revealed and talents qualified/eliminated!");
+                    updateDashboards(); // Re-render to reflect changes
+                    showLoading(false);
+                });
+            };
+            if (isCompetitionEnded) revealBtn.disabled = true;
+
+
+            // Render the latest announcement in the organizer dashboard
+            const renderAnnouncements = () => {
+                if (db.config.announcement) {
+                    const ann = db.config.announcement;
+                    latestAnnouncementDiv.innerHTML = `<p class="font-bold text-yellow-400">Latest Announcement:</p><p class="italic text-gray-300">"${ann.text}"</p><p class="text-xs text-gray-500 mt-1">${new Date(ann.timestamp).toLocaleString()}</p>`;
+                } else {
+                    latestAnnouncementDiv.innerHTML = `<p class="text-gray-400">No announcements yet.</p>`;
+                }
+            };
+            
+            // Render the list of registered talents
+            const renderTalentList = () => {
+                const talents = Object.values(db.talents);
+                talentListContainer.innerHTML = `
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="border-b border-yellow-500/30">
+                                <th class="p-2">Name</th>
+                                <th class="p-2">User ID/PIN</th>
+                                <th class="p-2">Registered On</th>
+                                <th class="p-2">Status</th>
+                                <th class="p-2">Wildcard</th>
+                                <th class="p-2">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${talents.map(t => `
+                                <tr>
+                                    <td class="p-2">${t.name}</td>
+                                    <td class="p-2 text-gray-400">${t.id}</td>
+                                    <td class="p-2">${new Date(t.registeredAt).toLocaleDateString()}</td>
+                                    <td class="p-2 ${t.isEliminated ? 'text-red-500 font-bold' : 'text-green-500'}">
+                                        ${t.isEliminated ? 'Eliminated' : 'Active'}
+                                    </td>
+                                    <td class="p-2 ${t.wildcardUsed ? 'text-green-500 font-bold' : 'text-gray-400'}">
+                                        ${t.wildcardUsed ? 'Used' : 'Available'}
+                                    </td>
+                                    <td class="p-2 space-x-2">
+                                        <button data-talent-id="${t.id}" class="toggle-elimination-btn 
+                                            ${t.isEliminated ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'} 
+                                            text-white text-sm py-1 px-3 rounded-md transition" ${isCompetitionEnded ? 'disabled' : ''}>
+                                            ${t.isEliminated ? 'Reinstate' : 'Eliminate'}
+                                        </button>
+                                        ${t.isEliminated && !t.wildcardUsed && !isCompetitionEnded ? `
+                                        <button data-talent-id="${t.id}" class="grant-wildcard-btn bg-purple-600 hover:bg-purple-700 text-white text-sm py-1 px-3 rounded-md transition">
+                                            Grant Wildcard
+                                        </button>
+                                        ` : ''}
+                                    </td>
+                                </tr>
+                            `).join('') || `<tr><td colspan="6" class="p-2 text-center text-gray-400">No talents registered yet.</td></tr>`}
+                        </tbody>
+                    </table>
+                `;
+                document.querySelectorAll('.toggle-elimination-btn').forEach(button => {
+                    button.onclick = (e) => {
+                        if (isCompetitionEnded) return; // Prevent action if competition ended
+                        const talentId = e.target.dataset.talentId;
+                        const talent = db.talents[talentId];
+                        const newStatus = !talent.isEliminated;
+                        showConfirm(
+                            `${newStatus ? 'Eliminate' : 'Reinstate'} Talent?`, 
+                            `Are you sure you want to ${newStatus ? 'eliminate' : 'reinstate'} ${talent.name}?`,
+                            () => {
+                                showLoading(true);
+                                db.talents[talentId].isEliminated = newStatus;
+                                saveDb(db);
+                                showToast(`${talent.name} has been ${newStatus ? 'eliminated' : 'reinstated'}.`);
+                                updateDashboards();
+                                showLoading(false);
+                            }
+                        );
+                    };
+                });
+
+                document.querySelectorAll('.grant-wildcard-btn').forEach(button => {
+                    button.onclick = (e) => {
+                        if (isCompetitionEnded) return; // Prevent action if competition ended
+                        const talentId = e.target.dataset.talentId;
+                        const talent = db.talents[talentId];
+                        showConfirm(
+                            `Grant Wildcard to ${talent.name}?`, 
+                            `This will reinstate ${talent.name} and they will be eligible for future rounds. This action cannot be undone for the wildcard status.`,
+                            () => {
+                                showLoading(true);
+                                db.talents[talentId].isEliminated = false; // Reinstate
+                                db.talents[talentId].wildcardUsed = true; // Mark wildcard as used
+                                saveDb(db);
+                                showToast(`${talent.name} has been granted a wildcard and reinstated!`);
+                                updateDashboards();
+                                showLoading(false);
+                            }
+                        );
+                    };
+                });
+            };
+            
+            // Calculate and render the overall rankings for the active round
+            const renderRankings = () => {
+                const activeRound = db.config.rounds.find(r => r.isActive) || db.config.rounds[0];
+                
+                // Use the new helper function
+                const rankings = calculateRankingsForRound(activeRound.id);
+                
+                // Determine qualifiers visually
+                const qualifierCount = activeRound.type === 'main' ? activeRound.qualifierCount : 0; // Only applies to main rounds
+
+                // Construct the rankings table HTML
+                const table = document.createElement('table');
+                table.className = 'w-full text-left table-auto';
+                table.innerHTML = `
+                    <thead>
+                        <tr class="border-b border-yellow-500/30">
+                            <th class="p-2">Rank</th>
+                            <th class="p-2">Name</th>
+                            <th class="p-2">Status</th>
+                            <th class="p-2">Final Score</th>
+                            <th class="p-2">Judge Score (${(db.config.judgeScoreWeight * 100).toFixed(0)}%)</th>
+                            <th class="p-2">${db.config.audienceVotingEnabled ? `Audience Score (${(db.config.audienceScoreWeight * 100).toFixed(0)}%)` : ''}</th>
+                            <th class="p-2">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rankings.map((r, i) => {
+                            const isQualified = activeRound.type === 'main' && qualifierCount > 0 && i < qualifierCount;
+                            const isEliminatedForRound = r.isEliminated && activeRound.type === 'main'; // Global eliminated status for main rounds
+
+                            return `
+                                <tr class="border-b border-gray-700 
+                                    ${isQualified ? 'bg-green-900/20 text-green-400 font-bold' : ''}
+                                    ${isEliminatedForRound ? 'bg-red-900/20 text-gray-500' : ''}
+                                    ${!isQualified && !isEliminatedForRound && activeRound.type === 'main' ? 'bg-red-900/20 text-red-400' : ''}
+                                    ${activeRound.type === 'wildcard' && i < WILDCARD_WINNERS_COUNT ? 'bg-purple-900/20 text-purple-400 font-bold' : ''}
+                                ">
+                                    <td class="p-2">${i + 1}</td>
+                                    <td class="p-2">${r.name}</td>
+                                    <td class="p-2">
+                                        ${isQualified ? 'QUALIFIED' : 
+                                          (isEliminatedForRound ? 'Eliminated' : 
+                                            (activeRound.type === 'wildcard' ? (i < WILDCARD_WINNERS_COUNT ? 'WILDCARD WINNER' : 'Eliminated (Wildcard)') : ''))
+                                        }
+                                    </td>
+                                    <td class="p-2">${r.finalScore.toFixed(2)}</td>
+                                    <td class="p-2">${(parseFloat(r.judgeAverage) * db.config.judgeScoreWeight).toFixed(2)}</td>
+                                    <td class="p-2">${db.config.audienceVotingEnabled ? (parseFloat(r.audienceScore) * db.config.audienceScoreWeight).toFixed(2) : ''}</td>
+                                    <td class="p-2">
+                                        <button data-talent-id="${r.id}" data-talent-name="${r.name}" data-round-id="${activeRound.id}" class="view-details-btn bg-gray-700 hover:bg-gray-600 text-white text-sm py-1 px-3 rounded-md transition">View Details</button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('') || `<tr><td colspan="7" class="p-2 text-center text-gray-400">No scores submitted yet for this round.</td></tr>`}
+                    </tbody>
+                `;
+                rankingsTable.innerHTML = '';
+                rankingsTable.appendChild(table);
+
+                // Attach event listeners to "View Details" buttons
+                document.querySelectorAll('.view-details-btn').forEach(btn => {
+                    btn.onclick = openDetailedScoreModal;
+                });
+            };
+            
+            // Update the "Reveal Results" button state and text
+            const renderRevealButton = () => {
+                const activeRound = db.config.rounds.find(r => r.isActive);
+                if (activeRound && activeRound.type === 'wildcard') {
+                    revealBtn.textContent = "Results can only be revealed for Main Rounds";
+                    revealBtn.disabled = true;
+                    revealBtn.className = `font-bold py-2 px-4 rounded-md transition bg-gray-500 cursor-not-allowed`;
+                } else {
+                    revealBtn.textContent = db.config.resultsRevealed ? "Results Already Revealed" : "Reveal Results to Talents";
+                    revealBtn.disabled = db.config.resultsRevealed || isCompetitionEnded; // Disable if already revealed or competition ended
+                    revealBtn.className = `font-bold py-2 px-4 rounded-md transition ${db.config.resultsRevealed || isCompetitionEnded ? 'bg-gray-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`;
+                }
+            };
+
+            // --- Wildcard Battle Management Logic ---
+            const renderWildcardManagement = () => {
+                const activeRound = db.config.rounds.find(r => r.isActive);
+                const eliminatedTalents = Object.values(db.talents).filter(t => t.isEliminated && !t.wildcardUsed);
+
+                let html = '';
+                if (activeRound && activeRound.type === 'wildcard') {
+                    // If a wildcard round is active
+                    const participants = activeRound.participants.map(id => db.talents[id]).filter(Boolean);
+                    html += `
+                        <p class="text-xl text-yellow-400">Active Wildcard Battle: <span class="font-bold">${activeRound.name}</span></p>
+                        <p class="text-gray-300">Participants: ${participants.length > 0 ? participants.map(p => p.name).join(', ') : 'None selected yet.'}</p>
+                        <button id="declare-wildcard-winners-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition mt-4" ${isCompetitionEnded ? 'disabled' : ''}>Declare Wildcard Winners</button>
+                    `;
+                } else {
+                    // If no wildcard round is active, allow scheduling a new one
+                    if (eliminatedTalents.length > 0) {
+                        html += `
+                            <p class="text-gray-300">Eligible Eliminated Talents for Wildcard: ${eliminatedTalents.map(t => t.name).join(', ') || 'None'}</p>
+                            <button id="schedule-wildcard-battle-btn" class="bg-theme-gold hover-bg-theme-gold-dark text-black font-bold py-2 px-4 rounded-md transition mt-4" ${isCompetitionEnded ? 'disabled' : ''}>Schedule New Wildcard Battle</button>
+                        `;
+                    } else {
+                        html += `<p class="text-gray-400">No eligible eliminated talents for a wildcard battle (all eliminated talents have used their wildcard or there are no eliminated talents).</p>`;
+                    }
+                }
+                wildcardManagementContent.innerHTML = html;
+
+                // Event listener for scheduling wildcard battle
+                const scheduleWildcardBtn = document.getElementById('schedule-wildcard-battle-btn');
+                if (scheduleWildcardBtn) {
+                    scheduleWildcardBtn.onclick = () => {
+                        if (isCompetitionEnded) return; // Prevent action if competition ended
+                        elements.eligibleWildcardTalentsList.innerHTML = '';
+                        const availableTalents = Object.values(db.talents).filter(t => t.isEliminated && !t.wildcardUsed);
+
+                        if (availableTalents.length === 0) {
+                            elements.wildcardSelectionMessage.textContent = "No talents are eligible for a wildcard battle.";
+                            elements.confirmWildcardSelectionBtn.disabled = true;
+                        } else {
+                            elements.wildcardSelectionMessage.textContent = "Select talents to participate in the wildcard battle:";
+                            elements.confirmWildcardSelectionBtn.disabled = false;
+                            availableTalents.forEach(talent => {
+                                const checkboxDiv = document.createElement('div');
+                                checkboxDiv.className = 'flex items-center';
+                                checkboxDiv.innerHTML = `
+                                    <input type="checkbox" id="wildcard-talent-${talent.id}" value="${talent.id}" class="form-checkbox h-5 w-5 text-theme-gold rounded">
+                                    <label for="wildcard-talent-${talent.id}" class="ml-2 text-gray-300">${talent.name}</label>
+                                `;
+                                elements.eligibleWildcardTalentsList.appendChild(checkboxDiv);
+                            });
+                        }
+                        elements.wildcardSelectionModal.style.display = 'flex';
+                    };
+                }
+
+                // Event listener for declaring wildcard winners
+                const declareWildcardWinnersBtn = document.getElementById('declare-wildcard-winners-btn');
+                if (declareWildcardWinnersBtn) {
+                    declareWildcardWinnersBtn.onclick = () => {
+                        if (isCompetitionEnded) return; // Prevent action if competition ended
+                        showConfirm("Declare Wildcard Winners?", `This will determine the top ${WILDCARD_WINNERS_COUNT} talents from this wildcard battle and re-instate them. All other participants will remain eliminated. This action cannot be undone.`, () => {
+                            showLoading(true);
+                            const currentWildcardRound = db.config.rounds.find(r => r.isActive && r.type === 'wildcard');
+                            if (!currentWildcardRound) {
+                                showToast("No active wildcard battle to declare winners for.", true);
+                                showLoading(false);
+                                return;
+                            }
+
+                            // Use calculateRankingsForRound for wildcard, then filter winners
+                            const wildcardRankings = calculateRankingsForRound(currentWildcardRound.id);
+                            
+                            const winners = wildcardRankings.slice(0, WILDCARD_WINNERS_COUNT);
+                            const winnerNames = winners.map(w => w.name).join(', ');
+
+                            winners.forEach(winner => {
+                                db.talents[winner.id].isEliminated = false; // Reinstate winners
+                            });
+
+                            // All participants (winners and losers) have used their wildcard
+                            currentWildcardRound.participants.forEach(talentId => {
+                                db.talents[talentId].wildcardUsed = true;
+                                // If they participated and are NOT a winner, they are eliminated
+                                if (!winners.some(w => w.id === talentId)) {
+                                    db.talents[talentId].isEliminated = true;
+                                }
+                            });
+
+                            // Deactivate current wildcard round
+                            currentWildcardRound.isActive = false;
+
+                            // Find or create the next main round and activate it
+                            let nextMainRound = db.config.rounds.find(r => r.type === 'main' && !r.isActive && db.config.rounds.indexOf(r) > db.config.rounds.indexOf(currentWildcardRound));
+                            if (!nextMainRound) {
+                                // Create a new main round if no subsequent main round exists
+                                const newRoundId = `round_${Date.now()}`;
+                                nextMainRound = { id: newRoundId, name: `Main Round ${db.config.rounds.filter(r => r.type === 'main').length + 1}`, isActive: true, type: 'main', slots: [], qualifierCount: 0 };
+                                db.config.rounds.push(nextMainRound);
+                            }
+                            nextMainRound.isActive = true;
+                            db.config.activeRoundId = nextMainRound.id;
+
+                            saveDb(db);
+                            showToast(`Wildcard Battle winners declared! ${winnerNames} have returned to the main competition!`);
+                            updateDashboards();
+                            showLoading(false);
+                        });
+                    };
+                }
+            };
+
+            // Handle wildcard selection confirmation
+            elements.confirmWildcardSelectionBtn.onclick = () => {
+                if (isCompetitionEnded) return; // Prevent action if competition ended
+                const selectedTalentIds = Array.from(elements.eligibleWildcardTalentsList.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+
+                if (selectedTalentIds.length === 0) {
+                    showToast("Please select at least one talent for the wildcard battle.", true);
+                    return;
+                }
+
+                showConfirm("Confirm Wildcard Participants?", `You are about to start a wildcard battle with ${selectedTalentIds.length} talent(s). These talents will use their wildcard chance. Continue?`, () => {
+                    showLoading(true);
+                    // Deactivate current active round
+                    const currentActiveRound = db.config.rounds.find(r => r.isActive);
+                    if (currentActiveRound) {
+                        currentActiveRound.isActive = false;
+                    }
+
+                    // Create new wildcard round
+                    const newWildcardRoundId = `wildcard_round_${Date.now()}`;
+                    const newWildcardRound = { 
+                        id: newWildcardRoundId, 
+                        name: `Wildcard Battle ${db.config.rounds.filter(r => r.type === 'wildcard').length + 1}`, 
+                        isActive: true, 
+                        type: 'wildcard', 
+                        slots: [],
+                        participants: selectedTalentIds // Store participants
+                    };
+                    db.config.rounds.push(newWildcardRound);
+                    db.config.activeRoundId = newWildcardRoundId; // Set as active
+
+                    // Mark wildcard used for all participants immediately (even if they don't win)
+                    selectedTalentIds.forEach(id => {
+                        db.talents[id].wildcardUsed = true;
+                    });
+                    
+                    saveDb(db);
+                    showToast("Wildcard battle scheduled! Judges and Audience can now score these talents.");
+                    elements.wildcardSelectionModal.style.display = 'none';
+                    updateDashboards(); // Re-render to show new state
+                    showLoading(false);
+                });
+            };
+
+            elements.cancelWildcardSelectionBtn.onclick = () => {
+                elements.wildcardSelectionModal.style.display = 'none';
+            };
+            
+            // Initial render calls for organizer dashboard sections
+            renderRoundsManagement();
+            renderJudgeAssignments();
+            renderPerformanceSlots(); 
+            renderCriteria();
+            renderAudienceCriteria();
+            renderAnnouncements();
+            renderTalentList();
+            renderRankings();
+            renderRevealButton();
+            renderWildcardManagement(); // Call new wildcard management renderer
+        };
+
+        // --- Detailed Score Modal Logic (Organizer View) ---
+        /**
+         * Opens a modal to display detailed score computations for a specific talent.
+         * Shows individual judge scores and audience votes breakdown.
+         * @param {Event} e The click event from the "View Details" button.
+         */
+        const openDetailedScoreModal = (e) => {
+            const talentId = e.target.dataset.talentId;
+            const talentName = e.target.dataset.talentName;
+            const roundId = e.target.dataset.roundId || db.config.activeRoundId; // Get round from button data or active round
+
+            document.getElementById('detailed-score-talent-name').textContent = talentName;
+            const detailedContentDiv = document.getElementById('detailed-score-content');
+            detailedContentDiv.innerHTML = '<p class="text-gray-400">Loading detailed scores...</p>';
+            
+            // Filter scores and votes for the selected talent and round
+            const talentScoresByJudge = Object.values(db.scores).filter(s => s.talentId === talentId && s.roundId === roundId);
+            const talentAudienceVotes = Object.values(db.audienceVotes).filter(v => v.talentId === talentId && v.roundId === roundId);
+
+            let contentHtml = '';
+
+            // Section for Judge Scores
+            if (talentScoresByJudge.length > 0) {
+                contentHtml += `<h4 class="text-xl font-heading theme-gold">Judge Scores</h4>`;
+                talentScoresByJudge.forEach(scoreRecord => {
+                    contentHtml += `
+                        <div class="glass-card p-4 rounded-lg">
+                            <p class="font-bold text-lg text-yellow-400">Judge: ${scoreRecord.judgeName}</p>
+                            <p class="text-sm text-gray-400 mb-2">Submitted: ${new Date(scoreRecord.submittedAt).toLocaleString()}</p>
+                            <ul class="list-disc list-inside space-y-1">
+                                ${scoreRecord.scores.map(s => `<li>${s.name}: ${s.score} / 100 (${s.weight}%)</li>`).join('')}
+                            </ul>
+                            <p class="mt-2 font-bold text-yellow-300">Weighted Total: ${scoreRecord.weightedTotal.toFixed(2)} / 100</p>
+                            ${scoreRecord.comment ? `<p class="italic text-gray-400 mt-2">Comment: "${scoreRecord.comment}"</p>` : ''}
+                        </div>
+                    `;
+                });
+            } else {
+                contentHtml += `<p class="text-gray-400">No judge scores available for this talent in this round.</p>`;
+            }
+
+            // Section for Audience Votes (only if enabled)
+            if (db.config.audienceVotingEnabled) {
+                contentHtml += `<h4 class="text-xl font-heading theme-gold mt-6">Audience Votes</h4>`;
+                const talent = db.talents[talentId]; // Get the talent object
+                const activeRound = db.config.rounds.find(r => r.isActive && r.id === roundId);
+
+
+                if (talent.isEliminated && activeRound.type === 'main') { // Only show elimination message if it's a main round
+                     contentHtml += `<p class="text-red-400">Talent was eliminated for this round. Audience votes not counted.</p>`;
+                } else if (talentAudienceVotes.length > 0) {
+                    // Recalculate audience score here for display consistency with ranking logic
+                    const allTalentsForRound = getTalentsForCurrentRound(); // Use relevant talents for the current round
+                    const allAudienceVotesInRound = Object.values(db.audienceVotes).filter(v => v.roundId === roundId);
+                    
+                    let highestVotesReceived = 0;
+                    allTalentsForRound.forEach(t => { // Only consider talents relevant to current round for highest vote
+                        const votes = allAudienceVotesInRound.filter(v => v.talentId === t.id).length;
+                        if (votes > highestVotesReceived) {
+                            highestVotesReceived = votes;
+                        }
+                    });
+
+                    const votesForThisTalent = talentAudienceVotes.length;
+                    const audienceScoreForTalent = highestVotesReceived > 0 ? (votesForThisTalent / highestVotesReceived) * 100 : 0;
+
+                    contentHtml += `
+                        <div class="glass-card p-4 rounded-lg">
+                            <p class="font-bold text-lg text-yellow-400">Audience Score (based on votes / highest votes received): ${audienceScoreForTalent.toFixed(2)}</p>
+                            <p class="text-sm text-gray-400">Total votes received: ${votesForThisTalent}</p>
+                            <button class="toggle-audience-details text-blue-400 hover:underline mt-2">Show individual votes</button>
+                            <div class="individual-audience-votes hidden mt-4 space-y-4">
+                                ${talentAudienceVotes.map(voteRecord => `
+                                    <div class="bg-gray-800 p-3 rounded-md">
+                                        <p class="font-bold text-md text-yellow-500">Voter: ${voteRecord.voterName}</p>
+                                        <p class="text-xs text-gray-500 mb-1">Submitted: ${new Date(voteRecord.submittedAt).toLocaleString()}</p>
+                                        <!-- No individual criterion scores for audience votes anymore -->
+                                        <p class="mt-1 font-bold text-yellow-400 text-sm">Voted for this talent.</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    contentHtml += `<p class="text-gray-400">No audience votes available for this talent in this round.</p>`;
+                }
+            }
+
+            detailedContentDiv.innerHTML = contentHtml; // Inject generated HTML
+            elements.detailedScoreModal.style.display = 'flex'; // Show the modal
+
+            // Add event listeners for toggling individual audience votes
+            document.querySelectorAll('.toggle-audience-details').forEach(btn => {
+                btn.onclick = (e) => {
+                    const detailsDiv = e.target.nextElementSibling;
+                    detailsDiv.classList.toggle('hidden');
+                    e.target.textContent = detailsDiv.classList.contains('hidden') ? 'Show individual votes' : 'Hide individual votes';
+                };
+            });
+        };
+
+        // Close detailed score modal button handler
+        elements.closeDetailedScoreModalBtn.onclick = () => {
+            elements.detailedScoreModal.style.display = 'none';
+        };
+        
+        // --- Judge Dashboard Logic --- //
+        const setupJudgeDashboard = () => {
+            const talentListContainer = document.getElementById('judge-talent-list');
+            const judgeAnnouncementsDiv = document.getElementById('judge-announcements');
+            const judgeActiveRoundName = document.getElementById('judge-active-round-name');
+
+            // Handle Competition Ended State for Judge Dashboard
+            const isCompetitionEnded = db.config.competitionEnded;
+            elements.judgeCompetitionEndedMessage.classList.toggle('hidden', !isCompetitionEnded);
+            
+            const activeRound = db.config.rounds.find(r => r.isActive) || db.config.rounds[0];
+            judgeActiveRoundName.textContent = activeRound ? activeRound.name : 'N/A';
+
+            // Render talents for judging
+            const renderJudgeView = () => {
+                // If competition ended, disable judging
+                if (isCompetitionEnded) {
+                    talentListContainer.innerHTML = `<p class="text-center text-gray-400 col-span-full">The competition has ended. Judging is now closed.</p>`;
+                    return;
+                }
+
+                // Use the helper to get talents relevant to the current active round type
+                let talentsToDisplay = getTalentsForCurrentRound();
+
+                const currentJudgeAssignments = db.config.judgeAssignments[activeRound.id]?.[currentAppUserId];
+                
+                // If there are specific assignments for this judge in this round, filter talents
+                if (currentJudgeAssignments && currentJudgeAssignments.length > 0) {
+                    talentsToDisplay = talentsToDisplay.filter(t => currentJudgeAssignments.includes(t.id));
+                } else if (db.config.judgeAssignments[activeRound.id] && Object.keys(db.config.judgeAssignments[activeRound.id]).length > 0) {
+                    // If there are assignments for *any* judge in this round, but not for this specific judge, show no talents
+                    talentsToDisplay = [];
+                }
+
+                const myScoresInRound = Object.values(db.scores).filter(s => s.judgeId === currentAppUserId && s.roundId === activeRound.id);
+                
+                talentListContainer.innerHTML = talentsToDisplay.map(talent => {
+                    const scoreRecord = myScoresInRound.find(s => s.talentId === talent.id);
+                    const hasScored = !!scoreRecord; // Check if judge has already scored this talent for this round
+                    const buttonText = hasScored ? 'View Score' : 'Score Now';
+                    // Change button style based on whether score has been submitted
+                    const buttonClass = hasScored ? 'bg-green-600 hover:bg-green-700' : 'bg-theme-gold text-black hover-bg-theme-gold-dark';
+
+                    return `
+                        <div class="glass-card p-4 rounded-lg flex flex-col justify-between">
+                            <h4 class="text-xl font-heading theme-gold">${talent.name}</h4>
+                            <button data-talent-id="${talent.id}" data-talent-name="${talent.name}" data-round-id="${activeRound.id}"
+                                class="mt-4 w-full score-btn ${buttonClass} font-bold py-2 px-4 rounded-md transition" ${isCompetitionEnded ? 'disabled' : ''}>
+                                ${buttonText}
+                            </button>
+                        </div>
+                    `;
+                }).join('') || `<p class="text-center text-gray-400 col-span-full">No active talents assigned to you for this round, or no active talents registered yet.</p>`;
+                // Attach click listeners to all score buttons
+                document.querySelectorAll('.score-btn').forEach(btn => btn.onclick = openScoringModal);
+
+                // Display latest announcement
+                if (db.config.announcement) {
+                    const ann = db.config.announcement;
+                    judgeAnnouncementsDiv.innerHTML = `<div class="glass-card p-4 rounded-lg mb-6"><h3 class="font-heading text-xl theme-gold">Announcement</h3><p class="italic">"${ann.text}"</p></div>`;
+                } else {
+                    judgeAnnouncementsDiv.innerHTML = ``;
+                }
+            };
+
+            renderJudgeView();
+        };
+        
+        /**
+         * Opens the scoring modal for judges.
+         * If the judge has already scored the talent, it displays their existing score and disables inputs.
+         * @param {Event} e The click event from the "Score Now" or "View Score" button.
+         */
+        const openScoringModal = (e) => {
+            const talentId = e.target.dataset.talentId;
+            const talentName = e.target.dataset.talentName;
+            const roundId = e.target.dataset.roundId || db.config.activeRoundId; // Get round from button data
+            const modal = elements.scoringModal;
+            const modalContent = document.getElementById('scoring-modal-content');
+
+            // If competition ended, prevent scoring
+            if (db.config.competitionEnded) {
+                showToast("The competition has ended. Scoring is now closed.", true);
+                return;
+            }
+
+            // Check if talent is eliminated (globally) AND it's a main round before opening modal
+            const talent = db.talents[talentId];
+            const activeRound = db.config.rounds.find(r => r.isActive && r.id === roundId);
+            if (talent?.isEliminated && activeRound?.type === 'main') {
+                showToast(`${talentName} has been eliminated and cannot be scored in this main round.`, true);
+                return;
+            }
+            
+            // Check if criteria are set by organizer
+            if (!db.config.criteria || db.config.criteria.length === 0) {
+                showToast("Judging criteria not set by organizer. Please contact the organizer.", true);
+                return;
+            }
+            
+            // The score ID now includes the round
+            const scoreKey = `${talentId}_${currentAppUserId}_${roundId}`;
+            const existingScoreRecord = Object.values(db.scores).find(s => s.scoreKey === scoreKey); // Find by compound key
+            const existingScores = existingScoreRecord ? existingScoreRecord.scores : [];
+            const isScored = !!existingScoreRecord; // True if judge has already submitted a score
+            const existingComment = existingScoreRecord ? existingScoreRecord.comment : '';
+
+            // Dynamically generate modal content based on whether the talent has been scored
+            modalContent.innerHTML = `
+                <h3 class="text-3xl font-heading theme-gold mb-4">Scoring: ${talentName} (Round: ${activeRound?.name || 'N/A'})</h3>
+                <form id="scoring-form" class="space-y-4">
+                    ${db.config.criteria.map(c => `
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300">${c.name} (${c.weight}%)</label>
+                            <input type="range" min="1" max="100" 
+                                value="${existingScores.find(s => s.name === c.name)?.score || 50}" 
+                                data-criterion-name="${c.name}" data-criterion-weight="${c.weight}" 
+                                class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" 
+                                ${isScored ? 'disabled' : ''}> <!-- Disable inputs if already scored -->
+                            <span class="text-yellow-400 font-bold text-lg float-right -mt-8 mr-2">
+                                ${existingScores.find(s => s.name === c.name)?.score || 50}
+                            </span>
+                        </div>
+                    `).join('')}
+                    <div class="mt-4">
+                        <label for="judge-comment" class="block text-sm font-medium text-gray-300">Comments (Optional):</label>
+                        <textarea id="judge-comment" rows="3" class="w-full bg-gray-700 border border-gray-600 rounded-md py-1 px-2 text-white focus:outline-none focus:ring-yellow-500 focus:border-yellow-500" placeholder="Add your feedback here..." ${isScored ? 'disabled' : ''}>${existingComment}</textarea>
+                    </div>
+                    ${isScored ? `
+                        <div class="glass-card p-4 rounded-md mt-4">
+                            <p class="text-yellow-300 font-bold text-lg">Your Total Score: ${existingScoreRecord.weightedTotal.toFixed(2)} / 100</p>
+                            <p class="text-gray-300">Equivalent Percentage: ${(existingScoreRecord.weightedTotal).toFixed(2)}%</p>
+                            <p class="text-gray-400 text-xs mt-2">Submitted on: ${new Date(existingScoreRecord.submittedAt).toLocaleString()}</p>
+                        </div>
+                    ` : ''}
+                    <div class="flex justify-end space-x-4 pt-4">
+                        <button type="button" id="cancel-score" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition">Close</button>
+                        <button type="submit" class="bg-theme-gold hover-bg-theme-gold-dark text-black font-bold py-2 px-4 rounded-md transition" 
+                            ${isScored ? 'disabled style="display:none;"' : ''}> <!-- Hide/disable submit button if already scored -->
+                            Submit Score
+                        </button>
+                    </div>
+                </form>
+            `;
+            
+            modal.style.display = 'flex'; // Show the modal
+            modal.querySelector('#cancel-score').onclick = () => modal.style.display = 'none'; // Close modal
+            // Update range slider value display in real-time
+            modalContent.querySelectorAll('input[type="range"]').forEach(input => { input.oninput = () => input.nextElementSibling.textContent = input.value; });
+            
+            // Handle score submission
+            modalContent.querySelector('#scoring-form').onsubmit = (event) => {
+                event.preventDefault();
+                // If already scored, do nothing (button should be hidden anyway)
+                if (isScored) return; 
+
+                showLoading(true);
+                const scores = Array.from(event.target.querySelectorAll('input[type="range"]')).map(input => ({ 
+                    name: input.dataset.criterionName, 
+                    weight: parseInt(input.dataset.criterionWeight), 
+                    score: parseInt(input.value) 
+                }));
+                const comment = document.getElementById('judge-comment').value.trim(); // Get comment
+                // Calculate weighted total score
+                const weightedTotal = scores.reduce((total, s) => total + (s.score * (s.weight / 100)), 0);
+                
+                // Store score with roundId and a unique scoreKey
+                db.scores[scoreKey] = { // Use scoreKey as the direct key for db.scores
+                    scoreKey: scoreKey, // Add scoreKey to the object itself
+                    talentId,
+                    talentName: db.talents[talentId]?.name || talentName,
+                    judgeId: currentAppUserId,
+                    judgeName: currentUserData.name,
+                    roundId: roundId, // Store the round ID with the score
+                    scores: scores,
+                    weightedTotal: weightedTotal,
+                    comment: comment, // Save the comment
+                    submittedAt: new Date().toISOString()
+                };
+                saveDb(db);
+                showToast(`Score for ${talentName} submitted for ${activeRound?.name || 'this round'}!`);
+                modal.style.display = 'none'; // Close modal
+                updateDashboards(); // Re-render to reflect changes
+                showLoading(false);
+            };
+        };
+
+        // --- Audience Dashboard Logic --- //
+        const setupAudienceDashboard = () => {
+            const audienceAnnouncementsDiv = document.getElementById('audience-announcements');
+            const audienceVotingSection = document.getElementById('audience-voting-section');
+            const audienceVotingClosed = document.getElementById('audience-voting-closed');
+            const audienceTalentListContainer = document.getElementById('audience-talent-list');
+            const audienceActiveRoundName = document.getElementById('audience-active-round-name');
+
+            // Handle Competition Ended State for Audience Dashboard
+            const isCompetitionEnded = db.config.competitionEnded;
+            elements.audienceCompetitionEndedMessage.classList.toggle('hidden', !isCompetitionEnded);
+
+            const activeRound = db.config.rounds.find(r => r.isActive);
+            audienceActiveRoundName.textContent = activeRound ? activeRound.name : 'N/A';
+
+            // Display latest announcement for audience
+            if (db.config.announcement) {
+                const ann = db.config.announcement;
+                audienceAnnouncementsDiv.innerHTML = `<div class="glass-card p-4 rounded-lg mb-6"><h3 class="font-heading text-xl theme-gold">Announcement</h3><p class="italic">"${ann.text}"</p></div>`;
+            } else {
+                audienceAnnouncementsDiv.innerHTML = ``;
+            }
+
+            // Check if audience voting is enabled AND competition is not ended
+            if (db.config.audienceVotingEnabled && !isCompetitionEnded) {
+                audienceVotingSection.classList.remove('hidden');
+                audienceVotingClosed.classList.add('hidden');
+
+                // Use the helper to get talents relevant to the current active round type
+                const talentsToVoteFor = getTalentsForCurrentRound();
+                
+                // Check if the current audience member has already voted for this specific round
+                const hasVotedInThisRound = Object.values(db.audienceVotes).some(v => v.voterId === currentAppUserId && v.roundId === activeRound.id);
+
+                // Construct talent cards for audience voting
+                const talentCardsHtml = talentsToVoteFor.map(talent => {
+                    const isVotedForThisTalentInThisRound = Object.values(db.audienceVotes).some(v => v.talentId === talent.id && v.voterId === currentAppUserId && v.roundId === activeRound.id);
+                    const buttonText = isVotedForThisTalentInThisRound ? 'Voted' : 'Vote Now';
+                    // Disable button if user has already voted for any talent in this round
+                    const isDisabled = hasVotedInThisRound; 
+                    const buttonClass = isVotedForThisTalentInThisRound ? 'bg-green-600' : 'bg-theme-gold text-black hover-bg-theme-gold-dark';
+
+                    return `
+                        <div class="glass-card p-6 rounded-lg flex flex-col items-center justify-center space-y-4 transform hover:scale-105 transition duration-200">
+                            <h4 class="text-2xl font-heading theme-gold text-center">${talent.name}</h4>
+                            <button data-talent-id="${talent.id}" data-talent-name="${talent.name}" data-round-id="${activeRound.id}"
+                                class="w-full vote-btn ${buttonClass} font-bold py-3 px-4 rounded-md text-lg transition ${isDisabled ? 'disabled:bg-gray-500 disabled:cursor-not-allowed' : ''}" 
+                                ${isDisabled ? 'disabled' : ''}>
+                                ${buttonText}
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+
+                audienceTalentListContainer.innerHTML = `
+                    ${hasVotedInThisRound ? `<p class="text-sm text-yellow-400 mb-4 text-center">You have already cast your vote for this round!</p>` : ``}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        ${talentCardsHtml || `<p class="text-center text-gray-400 col-span-full">No talents for voting yet.</p>`}
+                    </div>
+                `;
+
+                // Attach click listeners to all vote buttons
+                document.querySelectorAll('.vote-btn').forEach(btn => btn.onclick = castAudienceVote);
+
+            } else {
+                // If audience voting is disabled or competition ended, show closed message
+                audienceVotingSection.classList.add('hidden');
+                audienceVotingClosed.classList.remove('hidden');
+            }
+        };
+
+        /**
+         * Handles casting an audience vote directly, without criteria scoring.
+         * @param {Event} e The click event from the "Vote Now" button.
+         */
+        const castAudienceVote = (e) => {
+            // If competition ended, prevent voting
+            if (db.config.competitionEnded) {
+                showToast("The competition has ended. Voting is now closed.", true);
+                return;
+            }
+
+            const talentId = e.target.dataset.talentId;
+            const talentName = e.target.dataset.talentName;
+            const roundId = e.target.dataset.roundId || db.config.activeRoundId; // Get round from button data
+            
+            const activeRound = db.config.rounds.find(r => r.isActive && r.id === roundId);
+            // Check if talent is eliminated (globally) AND it's a main round before allowing vote
+            const talent = db.talents[talentId];
+            if (talent?.isEliminated && activeRound?.type === 'main') {
+                showToast(`${talentName} has been eliminated and cannot receive votes in this main round.`, true);
+                return;
+            }
+
+            // Check if the current audience member has already voted for this specific round
+            const hasAlreadyVotedInThisRound = Object.values(db.audienceVotes).some(v => v.voterId === currentAppUserId && v.roundId === roundId);
+
+            if (hasAlreadyVotedInThisRound) {
+                showToast(`You have already cast your vote for this round. You can only vote for ${AUDIENCE_VOTE_LIMIT} talent per round.`, true);
+                return;
+            }
+
+            showConfirm("Confirm Vote?", `Are you sure you want to vote for ${talentName} in this round? You can only vote once per round.`, () => {
+                showLoading(true);
+                // The vote ID now includes the round
+                const voteKey = `vote_${talentId}_${currentAppUserId}_${roundId}`; // Unique ID for this specific vote in this round
+
+                db.audienceVotes[voteKey] = {
+                    id: voteKey, // Add voteKey to the object itself
+                    talentId,
+                    talentName: db.talents[talentId]?.name || talentName,
+                    voterId: currentAppUserId,
+                    voterName: currentUserData.name,
+                    roundId: roundId, // Store the round ID with the vote
+                    submittedAt: new Date().toISOString()
+                };
+                saveDb(db);
+                showToast(`Your vote for ${talentName} has been cast for ${activeRound?.name || 'this round'}!`);
+                updateDashboards(); // Re-render to disable other vote buttons
+                showLoading(false);
+            });
+        };
+        
+        // --- Talent Dashboard Logic --- //
+        const setupTalentDashboard = () => {
+            const infoDiv = document.getElementById('talent-info');
+            const talentAnnouncementsDiv = document.getElementById('talent-announcements');
+            const talentCriteriaView = document.getElementById('talent-criteria-view');
+            const talentResultsSection = document.getElementById('talent-results-section');
+            const talentResultDisplay = document.getElementById('talent-result-display');
+            const downloadCertBtn = document.getElementById('download-cert-btn');
+            const talentResultRoundName = document.getElementById('talent-result-round-name');
+
+            // Handle Competition Ended State for Talent Dashboard
+            const isCompetitionEnded = db.config.competitionEnded;
+            elements.talentCompetitionEndedMessage.classList.toggle('hidden', !isCompetitionEnded);
+
+            // Determine which round's results to display and use for certificate
+            const displayRoundId = isCompetitionEnded && db.config.finalRoundId ? db.config.finalRoundId : db.config.activeRoundId;
+            const displayRound = db.config.rounds.find(r => r.id === displayRoundId);
+
+            talentResultRoundName.textContent = displayRound ? displayRound.name : 'N/A';
+
+            // Display latest announcement for talent
+            if (db.config.announcement) {
+                const ann = db.config.announcement;
+                talentAnnouncementsDiv.innerHTML = `<div class="glass-card p-4 rounded-lg mb-6"><h3 class="font-heading text-xl theme-gold">Announcement</h3><p class="italic">"${ann.text}"</p></div>`;
+            } else {
+                talentAnnouncementsDiv.innerHTML = ``;
+            }
+
+            // Display talent's personal information
+            const currentTalent = db.talents[currentAppUserId];
+            infoDiv.innerHTML = `
+                <p><span class="font-bold theme-gold">Name:</span> ${currentUserData.name}</p>
+                <p><span class="font-bold theme-gold">Your User ID/PIN:</span> ${currentAppUserId}</p>
+                <p><span class="font-bold theme-gold">Role:</span> ${currentUserData.role}</p>
+                <p><span class="font-bold theme-gold">Registered On:</span> ${new Date(currentTalent?.registeredAt).toLocaleDateString()}</p>
+                <p><span class="font-bold theme-gold">Status:</span> 
+                    <span class="${currentTalent?.isEliminated ? 'text-red-500 font-bold' : 'text-green-500'}">
+                        ${currentTalent?.isEliminated ? 'Eliminated' : 'Active'}
+                    </span>
+                </p>
+                <p><span class="font-bold theme-gold">Wildcard Used:</span> 
+                    <span class="${currentTalent?.wildcardUsed ? 'text-green-500 font-bold' : 'text-gray-400'}">
+                        ${currentTalent?.wildcardUsed ? 'Used' : 'Available'}
+                    </span>
+                </p>
+            `;
+
+            // Display official judging criteria
+            if (db.config.criteria && db.config.criteria.length > 0) {
+                talentCriteriaView.innerHTML = `
+                    <ul class="list-disc list-inside space-y-1">
+                        ${db.config.criteria.map(c => `<li>${c.name} (${c.weight}%)</li>`).join('')}
+                    </ul>
+                `;
+            } else {
+                talentCriteriaView.innerHTML = `<p class="text-gray-400">Judging criteria not yet set by organizer.</p>`;
+            }
+
+            // Render Results section if results are revealed OR competition is ended
+            if (db.config.resultsRevealed || isCompetitionEnded) {
+                talentResultsSection.classList.remove('hidden');
+                downloadCertBtn.disabled = false;
+
+                // Filter scores and votes for the current talent and the displayRound
+                const myTalentScoresByJudge = Object.values(db.scores).filter(s => s.talentId === currentAppUserId && s.roundId === displayRoundId);
+                const myAudienceVotes = Object.values(db.audienceVotes).filter(v => v.talentId === currentAppUserId && v.roundId === displayRoundId);
+
+                const totalJudgesWhoScoredThisTalent = myTalentScoresByJudge.length;
+                const judgeAverage = totalJudgesWhoScoredThisTalent > 0 ? myTalentScoresByJudge.reduce((sum, s) => sum + s.weightedTotal, 0) / totalJudgesWhoScoredThisTalent : 0;
+
+                // Find the highest number of votes received by any talent in the displayRound
+                const allAudienceVotesInRound = Object.values(db.audienceVotes).filter(v => v.roundId === displayRoundId);
+                // Consider talents relevant to current round for highest vote
+                const talentsForRanking = calculateRankingsForRound(displayRoundId); // Use calculateRankingsForRound for consistent talent list
+                let highestVotesReceived = 0;
+                 talentsForRanking.forEach(talent => { 
+                    const votes = allAudienceVotesInRound.filter(v => v.talentId === talent.id).length;
+                    if (votes > highestVotesReceived) {
+                        highestVotesReceived = votes;
+                    }
+                });
+
+                // Audience Score Calculation: (Votes Accumulated / Highest Vote) * 100
+                const votesForCurrentTalent = myAudienceVotes.length;
+                const audienceScore = (highestVotesReceived > 0 ? (votesForCurrentTalent / highestVotesReceived) * 100 : 0);
+
+                let finalScore = 0;
+                const judgeWeight = db.config.judgeScoreWeight; // 0.70
+                const audienceWeight = db.config.audienceScoreWeight; // 0.30
+
+                 // Calculate combined score based on available data
+                 if (totalJudgesWhoScoredThisTalent > 0 && db.config.audienceVotingEnabled) {
+                    finalScore = (judgeAverage * judgeWeight) + (audienceScore * audienceWeight);
+                } else if (totalJudgesWhoScoredThisTalent > 0) {
+                    finalScore = judgeAverage;
+                } else if (db.config.audienceVotingEnabled && highestVotesReceived > 0) {
+                    finalScore = audienceScore;
+                }
+
+                const finalScorePercentage = (finalScore).toFixed(2); // Score is already out of 100, so it's directly the percentage
+
+                talentResultDisplay.innerHTML = `
+                    <p class="text-2xl font-bold theme-gold">Your Final Score: ${finalScore.toFixed(2)} / 100</p>
+                    <p class="text-xl text-gray-300">Equivalent Percentage: ${finalScorePercentage}%</p>
+                    <p class="text-md mt-2 text-gray-400">Scores from ${totalJudgesWhoScoredThisTalent} judge(s).</p>
+                    ${db.config.audienceVotingEnabled ? `<p class="text-md text-gray-400">Received ${votesForCurrentTalent} audience vote(s). Your Audience Score: ${(audienceScore * audienceWeight).toFixed(2)}</p>` : ''}
+                    ${currentTalent?.isEliminated && displayRound.type === 'main' ? `<p class="text-red-400 font-bold mt-4">Note: You were eliminated for this round. Your score reflects this status.</p>` : ''}
+                    ${isCompetitionEnded ? `<p class="text-green-400 font-bold mt-4">Prizes will be awarded based on these final results!</p>` : ''}
+                `;
+
+            } else {
+                // If results are not revealed AND competition not ended, hide the section and disable certificate download
+                talentResultsSection.classList.add('hidden');
+                downloadCertBtn.disabled = true;
+                talentResultDisplay.innerHTML = `<p class="text-lg">Results are not yet revealed. Please wait for the organizer's announcement.</p>`;
+            }
+
+            // Certificate Download functionality (using jsPDF)
+            downloadCertBtn.onclick = () => {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const pageHeight = doc.internal.pageSize.getHeight();
+
+                // Background/Border
+                doc.setFillColor('#1a1a1a'); // Dark background
+                doc.rect(0, 0, pageWidth, pageHeight, 'F');
+                doc.setDrawColor('#FFD700'); // Gold border
+                doc.setLineWidth(5);
+                doc.rect(10, 10, pageWidth - 20, pageHeight - 20, 'S');
+
+                // Re-calculate rankings to get current rank and title
+                // Use the finalRoundId if competition is ended, otherwise use activeRoundId
+                const certRoundId = isCompetitionEnded && db.config.finalRoundId ? db.config.finalRoundId : db.config.activeRoundId;
+                const certRound = db.config.rounds.find(r => r.id === certRoundId);
+                const rankings = calculateRankingsForRound(certRoundId);
+                const currentTalentRankData = rankings.find(r => r.id === currentAppUserId);
+
+                let talentRank = 'N/A';
+                let talentTitle = 'Valued Participant';
+
+                if (currentTalentRankData) {
+                    const talentIndex = rankings.indexOf(currentTalentRankData);
+                    talentRank = talentIndex + 1; // 1-based rank
+
+                    if (certRound.type === 'wildcard') {
+                        // Special titles for wildcard winners
+                        if (talentIndex < WILDCARD_WINNERS_COUNT) {
+                            talentTitle = `Wildcard Winner`;
+                        } else {
+                            talentTitle = 'Wildcard Participant';
+                        }
+                    } else { // Main round titles
+                        if (talentRank === 1) talentTitle = 'Champion';
+                        else if (talentRank === 2) talentTitle = '1st Runner Up';
+                        else if (talentRank === 3) talentTitle = '2nd Runner Up';
+                        else talentTitle = 'Valued Participant';
+                    }
+                }
+
+                // Title - Starlight Stage
+                doc.setFont('Bebas Neue', 'normal');
+                doc.setFontSize(48);
+                doc.setTextColor('#FFD700');
+                doc.text('Starlight Stage', pageWidth / 2, 40, { align: 'center' });
+
+                // Subtitle - Certificate of Achievement / Participation
+                doc.setFont('Inter', 'bold');
+                doc.setFontSize(24);
+                doc.setTextColor('#FFFFFF');
+                doc.text('Certificate of Achievement', pageWidth / 2, 65, { align: 'center' }); // Slightly lower
+
+                // "Proudly Presented To"
+                doc.setFont('Inter', 'normal');
+                doc.setFontSize(14);
+                doc.setTextColor('#CCCCCC');
+                doc.text('This Certificate is Proudly Presented To', pageWidth / 2, 95, { align: 'center' }); // Adjusted Y
+
+                // Talent Name
+                doc.setFont('Bebas Neue', 'normal');
+                doc.setFontSize(45); // Slightly larger for name
+                doc.setTextColor('#FFD700');
+                doc.text(currentUserData.name.toUpperCase(), pageWidth / 2, 125, { align: 'center' }); // Adjusted Y
+
+                // Talent Title (Champion, 1st Runner Up, etc.)
+                doc.setFont('Inter', 'bold');
+                doc.setFontSize(20);
+                if (talentTitle.includes('Champion') || talentTitle.includes('Winner')) {
+                     doc.setTextColor('#FFD700'); // Gold for winners/champions
+                } else if (talentTitle.includes('Runner Up')) {
+                    doc.setTextColor('#C0C0C0'); // Silver for runner-ups
+                } else {
+                    doc.setTextColor('#ADD8E6'); // Light blue for participants
+                }
+                doc.text(talentTitle, pageWidth / 2, 140, { align: 'center' }); // Adjusted Y
+
+                // Rank Display
+                doc.setFont('Inter', 'normal');
+                doc.setFontSize(16);
+                doc.setTextColor('#FFFFFF');
+                doc.text(`Rank: ${talentRank}`, pageWidth / 2, 160, { align: 'center' }); // New element
+
+                // For participation in...
+                doc.setFont('Inter', 'normal');
+                doc.setFontSize(14);
+                doc.setTextColor('#FFFFFF');
+                doc.text('For Your Outstanding Performance In The', pageWidth / 2, 175, { align: 'center' });
+                doc.setFont('Inter', 'bold');
+                doc.setFontSize(16); // Slightly smaller for this line
+                doc.setTextColor('#FFD700');
+                doc.text('Starlight Stage Singing Contest', pageWidth / 2, 185, { align: 'center' });
+                
+                // Score and Percentage
+                doc.setFont('Inter', 'normal');
+                doc.setFontSize(12); // Slightly smaller for scores
+                doc.setTextColor('#FFFFFF');
+                const finalScoreText = talentResultDisplay.querySelector('.text-2xl').textContent.replace('Your Final Score: ', '');
+                const percentageText = talentResultDisplay.querySelector('.text-xl').textContent.replace('Equivalent Percentage: ', '');
+                doc.text(`Final Score: ${finalScoreText}`, pageWidth / 2, 200, { align: 'center' });
+                doc.text(`Overall Performance: ${percentageText}`, pageWidth / 2, 210, { align: 'center' });
+
+                // Prizes mention
+                if (isCompetitionEnded) {
+                    doc.setFontSize(12);
+                    doc.setTextColor('#FFD700');
+                    doc.text('Prizes will be awarded to our top talents!', pageWidth / 2, 225, { align: 'center' });
+                }
+
+                // Footer lines
+                doc.setDrawColor('#FFD700'); // Gold line
+                doc.setLineWidth(0.5);
+                doc.line(30, pageHeight - 70, pageWidth - 30, pageHeight - 70); // Horizontal line above signatures
+
+                // Signature / Date / Organizer
+                doc.setFont('Inter', 'normal');
+                doc.setFontSize(10); // Smaller font for footer details
+                doc.setTextColor('#CCCCCC');
+
+                const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                doc.text(`Date Issued: ${today}`, 30, pageHeight - 55);
+
+                doc.text('_________________________', pageWidth - 70, pageHeight - 55, { align: 'center' }); // Signature line, centered
+                doc.text('Organizer Signature', pageWidth - 70, pageHeight - 45, { align: 'center' });
+                doc.text('Starlight Stage Event Management', pageWidth - 70, pageHeight - 35, { align: 'center' });
+
+
+                doc.save(`${currentUserData.name}-StarlightStage-Certificate.pdf`);
+                showToast("Certificate downloaded!");
+            };
+        };
+
+        // --- Public Display Logic --- //
+        const setupPublicDisplay = () => {
+            const publicActiveRoundName = document.getElementById('public-active-round-name');
+            const publicAnnouncementsDiv = document.getElementById('public-announcements');
+            const publicRankingsTable = document.getElementById('public-rankings-table');
+            const publicPerformanceSchedule = document.getElementById('public-performance-schedule');
+
+            // Handle Competition Ended State for Public Display
+            const isCompetitionEnded = db.config.competitionEnded;
+            elements.publicCompetitionEndedMessage.classList.toggle('hidden', !isCompetitionEnded);
+
+            const renderPublicView = () => {
+                // Ensure db is fresh when rendering public view
+                db = getDb();
+
+                // If competition ended, display final round name and results
+                const displayRound = isCompetitionEnded && db.config.finalRoundId 
+                                    ? db.config.rounds.find(r => r.id === db.config.finalRoundId)
+                                    : db.config.rounds.find(r => r.isActive);
+
+                publicActiveRoundName.textContent = displayRound ? displayRound.name : 'N/A';
+
+                // Render latest announcement
+                if (db.config.announcement) {
+                    const ann = db.config.announcement;
+                    publicAnnouncementsDiv.innerHTML = `
+                        <p class="font-bold text-yellow-400">Latest Announcement:</p>
+                        <p class="italic text-gray-300">"${ann.text}"</p>
+                        <p class="text-xs text-gray-500 mt-1">${new Date(ann.timestamp).toLocaleString()}</p>
+                    `;
+                } else {
+                    publicAnnouncementsDiv.innerHTML = `<p class="text-gray-400">No announcements yet.</p>`;
+                }
+
+                // Render performance schedule (if competition not ended or if it's the final round)
+                if (displayRound && displayRound.slots && displayRound.slots.length > 0) {
+                    displayRound.slots.sort((a, b) => a.time.localeCompare(b.time)); // Sort by time
+                    publicPerformanceSchedule.innerHTML = `
+                        ${displayRound.slots.map(slot => `
+                            <div class="flex justify-between items-center bg-gray-800 p-3 rounded-md">
+                                <span class="font-medium text-yellow-300">${slot.time}</span>
+                                <span class="text-gray-200">${slot.talentName || 'TBA'}</span>
+                            </div>
+                        `).join('')}
+                    `;
+                } else {
+                    publicPerformanceSchedule.innerHTML = `<p class="text-gray-400">No performance schedule set for this round.</p>`;
+                }
+
+
+                // Render public rankings (similar to organizer, but simplified)
+                // If competition ended, always show final rankings from finalRoundId
+                const rankingsRoundId = isCompetitionEnded && db.config.finalRoundId 
+                                        ? db.config.finalRoundId 
+                                        : (displayRound ? displayRound.id : db.config.rounds[0].id);
+                const rankings = calculateRankingsForRound(rankingsRoundId);
+                
+                // Determine qualifiers visually for public view
+                const qualifierCount = displayRound && displayRound.type === 'main' ? displayRound.qualifierCount : 0;
+
+                const table = document.createElement('table');
+                table.className = 'w-full text-left table-auto';
+                table.innerHTML = `
+                    <thead>
+                        <tr class="border-b border-yellow-500/30">
+                            <th class="p-2">Rank</th>
+                            <th class="p-2">Name</th>
+                            <th class="p-2">Status</th>
+                            <th class="p-2">Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rankings.map((r, i) => {
+                            const isQualified = displayRound && displayRound.type === 'main' && qualifierCount > 0 && i < qualifierCount;
+                            const isEliminatedForRound = r.isEliminated && displayRound && displayRound.type === 'main'; // Global eliminated status for main rounds
+                            return `
+                                <tr class="border-b border-gray-700 
+                                    ${isQualified ? 'bg-green-900/20 text-green-400 font-bold' : ''}
+                                    ${isEliminatedForRound ? 'bg-red-900/20 text-gray-500' : ''}
+                                    ${!isQualified && !isEliminatedForRound && displayRound && displayRound.type === 'main' ? 'bg-red-900/20 text-red-400' : ''}
+                                    ${displayRound && displayRound.type === 'wildcard' && i < WILDCARD_WINNERS_COUNT ? 'bg-purple-900/20 text-purple-400 font-bold' : ''}
+                                ">
+                                    <td class="p-2">${i + 1}</td>
+                                    <td class="p-2">${r.name}</td>
+                                    <td class="p-2">
+                                        ${isQualified ? 'QUALIFIED' : 
+                                          (isEliminatedForRound ? 'Eliminated' : 
+                                            (displayRound && displayRound.type === 'wildcard' ? (i < WILDCARD_WINNERS_COUNT ? 'WILDCARD WINNER' : 'Eliminated (Wildcard)') : ''))
+                                        }
+                                    </td>
+                                    <td class="p-2">${r.finalScore.toFixed(2)}</td>
+                                </tr>
+                            `;
+                        }).join('') || `<tr><td colspan="4" class="p-2 text-center text-gray-400">No data available yet.</td></tr>`}
+                    </tbody>
+                `;
+                publicRankingsTable.innerHTML = '';
+                publicRankingsTable.appendChild(table);
+            };
+
+            // Initial render
+            renderPublicView();
+
+            // Set up auto-refresh for public display (e.g., every 10 seconds)
+            publicDisplayInterval = setInterval(() => {
+                db = getDb(); // Re-load the database to get latest updates
+                renderPublicView();
+            }, 10000); // Refresh every 10 seconds (10000 ms)
+        };
+    });
+</script>
+</body>
+</html>
